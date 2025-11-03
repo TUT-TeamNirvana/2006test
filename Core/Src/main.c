@@ -77,7 +77,6 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-  M2006_InitAll(motors, &hcan1);
 
   /* USER CODE END Init */
 
@@ -94,6 +93,7 @@ int main(void)
   MX_USART6_UART_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
+  M2006_InitAll(motors, &hcan1);
 
   /* USER CODE END 2 */
 
