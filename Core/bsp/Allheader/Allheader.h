@@ -7,5 +7,6 @@
 
 #include "m2006_motor.h"
 #include "servo_motor.h"
+#include "motor_test.h"
 
 #endif //ALLHEADER_H

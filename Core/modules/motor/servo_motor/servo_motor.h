@@ -1,7 +1,11 @@
 //
 // Created by 17087 on 25-10-29.
 //
-
+/*
+ * Fashion Star 总线伺服舵机驱动库
+ * Version: v0.0.2
+ * UpdateTime: 2024/07/17
+ */
 #ifndef SERVO_MOTOR_H
 #define SERVO_MOTOR_H
 
