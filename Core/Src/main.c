@@ -94,7 +94,7 @@ int main(void)
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
   M2006_InitAll(motors, &hcan1);
-
+  User_Uart_Init(&huart1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
