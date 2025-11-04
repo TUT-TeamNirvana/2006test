@@ -56,8 +56,8 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-//M2006_t motors[2];
-//int8_t dir[2] = { +1, -1 };
+M2006_t motors[2];
+int8_t dir[2] = { +1, -1 };
 /* USER CODE END 0 */
 
 /**
@@ -93,7 +93,7 @@ int main(void)
   MX_USART6_UART_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-  //M2006_InitAll(motors, &hcan1);
+  M2006_InitAll(motors, &hcan1);
   User_Uart_Init(&huart6);
   /* USER CODE END 2 */
 
@@ -102,7 +102,7 @@ int main(void)
   while (1)
   {
     //demo_ping();
-    HAL_UART_Transmit(&huart1, "test_data", 10, 100);
+    //HAL_UART_Transmit(&huart1, "test_data", 10, 100);
     HAL_Delay(1000);
     /* USER CODE END WHILE */
 
