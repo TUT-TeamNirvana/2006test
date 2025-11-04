@@ -5,8 +5,6 @@
 #ifndef MOTOR_TEST_H
 #define MOTOR_TEST_H
 
-#include "servo_motor.h"
-
 void demo_ping(void);
 void demo_setAngle_SingleServo(void);
 void demo_setAngle_MultiServo(void);

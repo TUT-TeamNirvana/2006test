@@ -4,6 +4,7 @@
 #include "motor_test.h"
 #include "stdio.h"
 #include "servo_motor_uart.h"
+#include "servo_motor.h"
 
 #define ID 0 // 舵机的ID号
 

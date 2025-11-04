@@ -7,7 +7,7 @@
 static M2006_t *motor_list[M2006_MAX_NUM] = {0};
 
 /* -------------------- 初始化所有电机 -------------------- */
-void M3508_InitAll(M2006_t *motors, CAN_HandleTypeDef *hcan)
+void M2006_InitAll(M2006_t *motors, CAN_HandleTypeDef *hcan)
 {
     for (int i = 0; i < M2006_MAX_NUM; i++)
     {

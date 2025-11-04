@@ -101,7 +101,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    ();
+    demo_ping();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

@@ -45,7 +45,12 @@ add_executable(${CMAKE_PROJECT_NAME}
         Core/modules/motor/servo_motor/servo_motor_uart.c
         Core/modules/motor/servo_motor/servo_motor_uart.h
         Core/modules/motor/servo_motor/motor_test.h
-        Core/modules/motor/servo_motor/motor_test.c)
+        Core/modules/motor/servo_motor/motor_test.c
+        Core/modules/pid/2006pid.c
+        Core/modules/pid/2006pid.c
+        Core/modules/motor/servo_motor/servo_motor.c
+        Core/modules/motor/servo_motor/servo_motor.h
+)
 
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)
