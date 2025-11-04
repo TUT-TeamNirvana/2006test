@@ -95,6 +95,8 @@ int main(void)
   /* USER CODE BEGIN 2 */
   M2006_InitAll(motors, &hcan1);
   User_Uart_Init(&huart6);
+  M2006_SetTarget(&motors[0],dir[0]*100);
+  M2006_SetTarget(&motors[1],dir[1]*100);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -103,7 +105,8 @@ int main(void)
   {
     //demo_ping();
     //HAL_UART_Transmit(&huart1, "test_data", 10, 100);
-    HAL_Delay(1000);
+    M2006_UpdateAll(motors, 2);
+    HAL_Delay(1);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
