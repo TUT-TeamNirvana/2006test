@@ -418,3 +418,29 @@ void demo_Begin_EndAsync(void)
 		//停止异步命令
 		FSUS_EndAsync(&FSUS_usart1,async_mode);
 }
+
+/********************************************************
+ * 初始化4个舵机到初始位置
+ ********************************************************/
+void demo_motor_init(void)
+{
+	// 初始化4个舵机（ID: 0, 1, 2, 3）
+	// 设置初始角度
+	angle = 0.0;  // 初始角度设为0度
+	interval = 1000;  // 设置移动时间
+	power = 1000;  // 设置功率
+	
+	// 等待UART稳定
+	HAL_Delay(50);
+	
+	// 初始化4个舵机到初始位置
+	for (uint8_t i = 0; i < 4; i++)
+	{
+		// 设置舵机角度
+		FSUS_SetServoAngle(&FSUS_usart1, i, angle, interval, power);
+		HAL_Delay(100);  // 每个舵机之间稍作延迟，避免总线冲突
+	}
+	
+	// 等待舵机到达初始位置
+	HAL_Delay(interval + 200);
+}

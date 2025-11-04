@@ -94,9 +94,39 @@ int main(void)
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
   M2006_InitAll(motors, &hcan1);
+  HAL_Delay(100);
   User_Uart_Init(&huart6);
-  M2006_SetTarget(&motors[0],dir[0]*100);
-  M2006_SetTarget(&motors[1],dir[1]*100);
+  HAL_Delay(100);
+  demo_motor_init();
+  //for (int i = 0; i < 10; i++)
+  //{
+    //M2006_UpdateAll(motors, 2);
+    //HAL_Delay(10);
+  //}
+  
+  // 渐进式设置M2006电机目标转速（避免突然大电流）
+  // 先设置较小的目标，然后逐渐增加
+  //M2006_SetTarget(&motors[0], dir[0] * 100);  // 先从1000rpm开始
+  //M2006_SetTarget(&motors[1], dir[1] * 100);
+  
+  // 等待一段时间让电机响应
+  //for (int i = 0; i < 50; i++)
+  //{
+    //M2006_UpdateAll(motors, 2);
+    //HAL_Delay(10);
+  //}
+  
+  // 逐渐增加到目标转速（可以根据需要调整最终目标值）
+  for (int step = 2000; step <= 8000; step += 1000)
+  {
+    M2006_SetTarget(&motors[0], dir[0] * step);
+    M2006_SetTarget(&motors[1], dir[1] * step);
+    for (int i = 0; i < 20; i++)
+    {
+      M2006_UpdateAll(motors, 2);
+      HAL_Delay(10);
+    }
+  }
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -105,8 +135,11 @@ int main(void)
   {
     //demo_ping();
     //HAL_UART_Transmit(&huart1, "test_data", 10, 100);
+    
+    // 更新M2006电机控制（PID计算并发送CAN命令）
+    // 建议控制频率：1-10ms，这里使用1ms延迟，控制频率约1000Hz
     M2006_UpdateAll(motors, 2);
-    HAL_Delay(1);
+    HAL_Delay(1);  // 控制更新频率，避免CAN总线过载
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
