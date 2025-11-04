@@ -102,8 +102,8 @@ int main(void)
   while (1)
   {
     //demo_ping();
-    HAL_Delay(1000);
     HAL_UART_Transmit(&huart1, "test_data", 10, 100);
+    HAL_Delay(1000);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
