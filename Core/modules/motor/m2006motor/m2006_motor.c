@@ -72,7 +72,6 @@ void M2006_UpdateAll(M2006_t *motors, uint8_t motor_count)
     motors[0].can->tx_buff[6] = (currents[3] >> 8) & 0xFF;
     motors[0].can->tx_buff[7] = (currents[3]) & 0xFF;
 
-    // 发送CAN数据，超时时间改为10ms（原来2ms可能太短）
     CANTransmit(motors[0].can, 2);
 }
 
