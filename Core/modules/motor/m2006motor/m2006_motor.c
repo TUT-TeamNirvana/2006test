@@ -25,9 +25,9 @@ void M2006_InitAll(M2006_t *motors, CAN_HandleTypeDef *hcan)
         motors[i].id = i + 1; // 电机编号（1~4）
         motors[i].target_speed = 0;
         // 初始化反馈数据为0
-        motors[i].feedback.speed_rpm = 0;
+        /*motors[i].feedback.speed_rpm = 0;
         motors[i].feedback.given_current = 0;
-        motors[i].feedback.temp = 0;
+        motors[i].feedback.temp = 0;*/
         PID_Init(&motors[i].pid, 1.2f, 0.0f, 0.05f, 10000.0f);
         CANSetDLC(motors[i].can, 8);
         motor_list[i] = &motors[i];
@@ -73,7 +73,7 @@ void M2006_UpdateAll(M2006_t *motors, uint8_t motor_count)
     motors[0].can->tx_buff[7] = (currents[3]) & 0xFF;
 
     // 发送CAN数据，超时时间改为10ms（原来2ms可能太短）
-    CANTransmit(motors[0].can, 10.0f);
+    CANTransmit(motors[0].can, 2);
 }
 
 /* -------------------- CAN反馈回调 -------------------- */

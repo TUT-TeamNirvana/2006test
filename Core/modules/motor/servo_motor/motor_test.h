@@ -18,5 +18,6 @@ void demo_SYNC(void);
 void demo_MONTIOR(void);
 void demo_StopOnControlMode(void);
 void demo_Begin_EndAsync(void);
+void demo_motor_init(void);
 
 #endif //MOTOR_TEST_H
