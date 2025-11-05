@@ -444,3 +444,22 @@ void demo_motor_init(void)
 	// 等待舵机到达初始位置
 	HAL_Delay(interval + 200);
 }
+
+/********************************************************
+ * 扫描舵机ID(0~15)，发现在线就置零角度
+ ********************************************************/
+void demo_scan_and_center(void)
+{
+	HAL_Delay(50);
+	for (uint8_t id = 0; id < 16; id++)
+	{
+		statusCode = FSUS_Ping(&FSUS_usart1, id);
+		if (statusCode == FSUS_STATUS_SUCCESS)
+		{
+			// 找到舵机，设置到 0 度
+			FSUS_SetServoAngle(&FSUS_usart1, id, 0.0f, 800, 800);
+			HAL_Delay(50);
+		}
+		HAL_Delay(10);
+	}
+}
