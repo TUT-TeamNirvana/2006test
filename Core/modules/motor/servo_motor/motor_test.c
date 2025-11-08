@@ -452,10 +452,10 @@ void demo_motor_init_lowpos(void)
 {
 	// 初始化4个舵机（ID: 1, 2, 3, 4）
 	// 等待UART稳定
-	// 电机限位角度-50~+30
+	// 电机限位角度1,3对应-50~+30；2,4对应-30~+50
 	HAL_Delay(50);
-	FSUS_SetServoAngle(&FSUS_usart1, 1, 0, 1000, 1000);
-	FSUS_SetServoAngle(&FSUS_usart1, 2, 10, 1000, 1000);
+	FSUS_SetServoAngle(&FSUS_usart1, 1, 10, 1000, 1000);
+	FSUS_SetServoAngle(&FSUS_usart1, 2, 0, 1000, 1000);
 	FSUS_SetServoAngle(&FSUS_usart1, 3, 10, 1000, 1000);
 	FSUS_SetServoAngle(&FSUS_usart1, 4, 0, 1000, 1000);
 }
