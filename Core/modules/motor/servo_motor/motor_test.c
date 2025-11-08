@@ -424,7 +424,7 @@ void demo_Begin_EndAsync(void)
  ********************************************************/
 void demo_motor_init(void)
 {
-	// 初始化4个舵机（ID: 0, 1, 2, 3）
+	// 初始化4个舵机（ID: 1, 2, 3, 4）
 	// 设置初始角度
 	angle = 0.0;  // 初始角度设为0度
 	interval = 1000;  // 设置移动时间
@@ -434,7 +434,7 @@ void demo_motor_init(void)
 	HAL_Delay(50);
 	
 	// 初始化4个舵机到初始位置
-	for (uint8_t i = 0; i < 4; i++)
+	for (uint8_t i = 1; i < 5; i++)
 	{
 		// 设置舵机角度
 		FSUS_SetServoAngle(&FSUS_usart1, i, angle, interval, power);
