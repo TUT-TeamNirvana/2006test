@@ -451,11 +451,22 @@ void demo_motor_init(void)
 void demo_motor_init_lowpos(void)
 {
 	// 初始化4个舵机（ID: 1, 2, 3, 4）
-	// 等待UART稳定
+	interval = 1000;  // 设置移动时间
+	power = 1000;  // 设置功率
 	// 电机限位角度1,3对应-50~+30；2,4对应-30~+50
+	// 等待UART稳定
 	HAL_Delay(50);
-	FSUS_SetServoAngle(&FSUS_usart1, 1, 30, 1000, 1000);
-	FSUS_SetServoAngle(&FSUS_usart1, 2, -30, 1000, 1000);
-	FSUS_SetServoAngle(&FSUS_usart1, 3, 30, 1000, 1000);
-	FSUS_SetServoAngle(&FSUS_usart1, 4, -30, 1000, 1000);
+	//0-停止后卸力(失锁)
+	//1-停止后保持锁力
+	//2-停止后进入阻尼状态
+	uint8_t stopcolmode=2;
+	FSUS_SetServoAngle(&FSUS_usart1, 1, 30, interval, power);
+	FSUS_SetServoAngle(&FSUS_usart1, 2, -30, interval, power);
+	FSUS_SetServoAngle(&FSUS_usart1, 3, 30, interval, power);
+	FSUS_SetServoAngle(&FSUS_usart1, 4, -30, interval, power);
+	//初始化后进入阻尼状态
+	FSUS_StopOnControlMode(&FSUS_usart1,1,stopcolmode,power);
+	FSUS_StopOnControlMode(&FSUS_usart1,2,stopcolmode,power);
+	FSUS_StopOnControlMode(&FSUS_usart1,3,stopcolmode,power);
+	FSUS_StopOnControlMode(&FSUS_usart1,4,stopcolmode,power);
 }
