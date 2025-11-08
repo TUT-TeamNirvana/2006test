@@ -446,20 +446,16 @@ void demo_motor_init(void)
 }
 
 /********************************************************
- * 扫描舵机ID(0~15)，发现在线就置零角度
+ * 初始化4个舵机到最低姿态初始位置
  ********************************************************/
-void demo_scan_and_center(void)
+void demo_motor_init_lowpos(void)
 {
+	// 初始化4个舵机（ID: 1, 2, 3, 4）
+	// 等待UART稳定
+	// 电机限位角度-50~+30
 	HAL_Delay(50);
-	for (uint8_t id = 0; id < 16; id++)
-	{
-		statusCode = FSUS_Ping(&FSUS_usart1, id);
-		if (statusCode == FSUS_STATUS_SUCCESS)
-		{
-			// 找到舵机，设置到 0 度
-			FSUS_SetServoAngle(&FSUS_usart1, id, 0.0f, 800, 800);
-			HAL_Delay(50);
-		}
-		HAL_Delay(10);
-	}
+	FSUS_SetServoAngle(&FSUS_usart1, 1, 0, 1000, 1000);
+	FSUS_SetServoAngle(&FSUS_usart1, 2, 10, 1000, 1000);
+	FSUS_SetServoAngle(&FSUS_usart1, 3, 10, 1000, 1000);
+	FSUS_SetServoAngle(&FSUS_usart1, 4, 0, 1000, 1000);
 }

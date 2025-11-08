@@ -19,6 +19,6 @@ void demo_MONTIOR(void);
 void demo_StopOnControlMode(void);
 void demo_Begin_EndAsync(void);
 void demo_motor_init(void);
-void demo_scan_and_center(void);
+void demo_motor_init_lowpos(void);
 
 #endif //MOTOR_TEST_H
