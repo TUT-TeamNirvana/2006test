@@ -93,13 +93,14 @@ int main(void)
   MX_USART6_UART_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-  M2006_InitAll(motors, &hcan1);
-  //User_Uart_Init(&huart6);
+  //M2006_InitAll(motors, &hcan1);
+  User_Uart_Init(&huart6);
   //HAL_Delay(50);
   // 先扫描舵机ID并归零，避免ID不匹配导致无响应
   //demo_scan_and_center();
   // 若你已知舵机ID为0~3，也可直接初始化
-  // demo_motor_init();
+   demo_motor_init();
+  HAL_Delay(2000);
   //M2006_SetTarget(&motors[0], dir[0] * 1000);
   //M2006_SetTarget(&motors[1], dir[1] * 1000);
   /* USER CODE END 2 */
@@ -111,7 +112,7 @@ int main(void)
     //demo_ping();
     HAL_UART_Transmit(&huart1, (uint8_t*)"test_data\r\n", 11, 100);
     //M2006_UpdateAll(motors, 2);
-    HAL_Delay(1000);
+    HAL_Delay(100);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
