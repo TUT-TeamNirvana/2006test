@@ -93,21 +93,20 @@ int main(void)
   MX_USART6_UART_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-  //M2006_InitAll(motors, &hcan1);
+  M2006_InitAll(motors, &hcan1);
   User_Uart_Init(&huart6);
   demo_motor_init_lowpos();
-  HAL_Delay(2000);
-  //M2006_SetTarget(&motors[0], dir[0] * 1000);
-  //M2006_SetTarget(&motors[1], dir[1] * 1000);
+  HAL_Delay(1000);
+  M2006_SetTarget(&motors[0], dir[0] * 1000);
+  M2006_SetTarget(&motors[1], dir[1] * 1000);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    //demo_ping();
-    HAL_UART_Transmit(&huart1, (uint8_t*)"test_data\r\n", 11, 100);
-    //M2006_UpdateAll(motors, 2);
+    //HAL_UART_Transmit(&huart1, (uint8_t*)"test_data\r\n", 11, 100);
+    M2006_UpdateAll(motors, 2);
     HAL_Delay(100);
     /* USER CODE END WHILE */
 
