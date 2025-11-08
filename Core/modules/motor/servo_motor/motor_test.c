@@ -454,8 +454,8 @@ void demo_motor_init_lowpos(void)
 	// 等待UART稳定
 	// 电机限位角度1,3对应-50~+30；2,4对应-30~+50
 	HAL_Delay(50);
-	FSUS_SetServoAngle(&FSUS_usart1, 1, 10, 1000, 1000);
-	FSUS_SetServoAngle(&FSUS_usart1, 2, 0, 1000, 1000);
-	FSUS_SetServoAngle(&FSUS_usart1, 3, 10, 1000, 1000);
-	FSUS_SetServoAngle(&FSUS_usart1, 4, 0, 1000, 1000);
+	FSUS_SetServoAngle(&FSUS_usart1, 1, 30, 1000, 1000);
+	FSUS_SetServoAngle(&FSUS_usart1, 2, -30, 1000, 1000);
+	FSUS_SetServoAngle(&FSUS_usart1, 3, 30, 1000, 1000);
+	FSUS_SetServoAngle(&FSUS_usart1, 4, -30, 1000, 1000);
 }
