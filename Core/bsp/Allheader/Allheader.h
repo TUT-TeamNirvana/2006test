@@ -8,5 +8,6 @@
 #include "m2006_motor.h"
 #include "servo_motor.h"
 #include "motor_test.h"
+#include "SEGGER_RTT.h"
 
 #endif //ALLHEADER_H
