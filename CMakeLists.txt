@@ -53,6 +53,7 @@ add_executable(${CMAKE_PROJECT_NAME}
         Middlewares/Third_Party/SEGGER/Config/SEGGER_RTT_Conf.h
         Middlewares/Third_Party/SEGGER/RTT/SEGGER_RTT.h
         Middlewares/Third_Party/SEGGER/RTT/SEGGER_RTT_printf.c
+        Middlewares/Third_Party/SEGGER/RTT/SEGGER_RTT.c
 )
 
 # Add STM32CubeMX generated sources
