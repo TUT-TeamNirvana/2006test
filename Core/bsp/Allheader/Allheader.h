@@ -10,6 +10,4 @@
 #include "motor_test.h"
 #include "SEGGER_RTT.h"
 
-#include "main.h"
-
 #endif //ALLHEADER_H
