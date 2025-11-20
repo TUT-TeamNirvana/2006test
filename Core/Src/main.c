@@ -106,8 +106,8 @@ int main(void)
   while (1)
   {
     //HAL_UART_Transmit(&huart1, (uint8_t*)"test_data\r\n", 11, 100);
-    M2006_UpdateAll(motors, 2);
-    HAL_Delay(100);
+    //M2006_UpdateAll(motors, 2);
+    //HAL_Delay(100);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
