@@ -33,8 +33,6 @@ enable_language(C ASM)
 
 # Create an executable object type
 add_executable(${CMAKE_PROJECT_NAME}
-        Core/bsp/can/bsp_can.c
-        Core/bsp/can/bsp_can.h
         Core/modules/motor/m2006motor/m2006_motor.c
         Core/modules/motor/m2006motor/m2006_motor.h
         Core/bsp/can/bsp_can.h
@@ -46,10 +44,10 @@ add_executable(${CMAKE_PROJECT_NAME}
         Core/modules/motor/servo_motor/servo_motor_uart.h
         Core/modules/motor/servo_motor/motor_test.h
         Core/modules/motor/servo_motor/motor_test.c
-        Core/modules/pid/2006pid.c
-        Core/modules/pid/2006pid.c
         Core/modules/motor/servo_motor/servo_motor.c
         Core/modules/motor/servo_motor/servo_motor.h
+        Core/modules/pid/2006pid.c
+        Core/modules/pid/2006pid.c
         Middlewares/Third_Party/SEGGER/Config/SEGGER_RTT_Conf.h
         Middlewares/Third_Party/SEGGER/RTT/SEGGER_RTT.h
         Middlewares/Third_Party/SEGGER/RTT/SEGGER_RTT_printf.c
