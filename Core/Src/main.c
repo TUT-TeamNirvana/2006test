@@ -45,7 +45,28 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+// 确保使用 volatile 和 used 属性
+__attribute__((used)) volatile uint32_t approx_t = 0;
+__attribute__((used)) volatile uint32_t sine_var = 0;
 
+#define MAX_VALUE 1000
+#define MIN_VALUE 0
+#define PERIOD 100
+
+// 正弦波查找表（避免数学库）
+const uint16_t sine_lut[100] = {
+  // 预计算的正弦波值，范围 0-1000
+  500, 531, 562, 593, 624, 654, 684, 713, 741, 768,
+  794, 819, 843, 866, 887, 907, 925, 941, 956, 969,
+  980, 989, 996, 1000, 1002, 1002, 1000, 996, 989, 980,
+  969, 956, 941, 925, 907, 887, 866, 843, 819, 794,
+  768, 741, 713, 684, 654, 624, 593, 562, 531, 500,
+  469, 438, 407, 376, 346, 316, 287, 259, 232, 206,
+  181, 157, 134, 113, 93, 75, 59, 44, 31, 20,
+  11, 4, 0, 0, 0, 4, 11, 20, 31, 44,
+  59, 75, 93, 113, 134, 157, 181, 206, 232, 259,
+  287, 316, 346, 376, 407, 438, 469, 500
+};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -58,13 +79,6 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN 0 */
 M2006_t motors[2];
 int8_t dir[2] = { +1, -1 };
-// 正弦波查找表 - 64个点的一个完整周期
-const int16_t sine_table[64] = {
-  0, 12, 25, 37, 49, 60, 71, 81, 90, 98, 106, 112, 117, 122, 125, 126,
-  127, 126, 125, 122, 117, 112, 106, 98, 90, 81, 71, 60, 49, 37, 25, 12,
-  0, -12, -25, -37, -49, -60, -71, -81, -90, -98, -106, -112, -117, -122, -125, -126,
-  -127, -126, -125, -122, -117, -112, -106, -98, -90, -81, -71, -60, -49, -37, -25, -12
-};
 /* USER CODE END 0 */
 
 /**
@@ -116,28 +130,18 @@ int main(void)
     //HAL_UART_Transmit(&huart1, (uint8_t*)"test_data\r\n", 11, 100);
     //M2006_UpdateAll(motors, 2);
     //HAL_Delay(100);
-    static uint32_t counter = 0;
+    // 确保索引计算正确
+    uint32_t index = approx_t % 100;
+    sine_var = (uint32_t)sine_lut[index];  // 显式类型转换
 
-    // 使用查找表生成正弦波
-    uint32_t index1 = counter % 64;
-    uint32_t index2 = (counter + 16) % 64;  // 90度相位差
-    uint32_t index3 = (counter + 32) % 64;  // 180度相位差
+    approx_t++;
 
-    int32_t data1 = sine_table[index1];
-    int32_t data2 = sine_table[index2];
-    int32_t data3 = sine_table[index3];
-
-    // 按照要求的格式输出：同一时刻的数据用空格分隔，不同时刻用逗号分隔
-    SEGGER_RTT_printf(0, "%d %d %d,", data1, data2, data3);
-
-    counter++;
-
-    // 每8个数据点换行，便于阅读
-    if (counter % 8 == 0) {
-      SEGGER_RTT_WriteString(0, "\n");
+    // 调试输出，确认数据正常
+    if (approx_t % 50 == 0) {
+      SEGGER_RTT_printf(0, "Sine wave: index=%lu, value=%lu\n", index, sine_var);
     }
 
-    HAL_Delay(30);  // 30ms 间隔，波形更平滑
+    HAL_Delay(10);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
