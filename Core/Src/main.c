@@ -22,7 +22,6 @@
 #include "spi.h"
 #include "usart.h"
 #include "gpio.h"
-
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "Allheader.h"
@@ -59,6 +58,13 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN 0 */
 M2006_t motors[2];
 int8_t dir[2] = { +1, -1 };
+// 正弦波查找表 - 64个点的一个完整周期
+const int16_t sine_table[64] = {
+  0, 12, 25, 37, 49, 60, 71, 81, 90, 98, 106, 112, 117, 122, 125, 126,
+  127, 126, 125, 122, 117, 112, 106, 98, 90, 81, 71, 60, 49, 37, 25, 12,
+  0, -12, -25, -37, -49, -60, -71, -81, -90, -98, -106, -112, -117, -122, -125, -126,
+  -127, -126, -125, -122, -117, -112, -106, -98, -90, -81, -71, -60, -49, -37, -25, -12
+};
 /* USER CODE END 0 */
 
 /**
@@ -110,6 +116,28 @@ int main(void)
     //HAL_UART_Transmit(&huart1, (uint8_t*)"test_data\r\n", 11, 100);
     //M2006_UpdateAll(motors, 2);
     //HAL_Delay(100);
+    static uint32_t counter = 0;
+
+    // 使用查找表生成正弦波
+    uint32_t index1 = counter % 64;
+    uint32_t index2 = (counter + 16) % 64;  // 90度相位差
+    uint32_t index3 = (counter + 32) % 64;  // 180度相位差
+
+    int32_t data1 = sine_table[index1];
+    int32_t data2 = sine_table[index2];
+    int32_t data3 = sine_table[index3];
+
+    // 按照要求的格式输出：同一时刻的数据用空格分隔，不同时刻用逗号分隔
+    SEGGER_RTT_printf(0, "%d %d %d,", data1, data2, data3);
+
+    counter++;
+
+    // 每8个数据点换行，便于阅读
+    if (counter % 8 == 0) {
+      SEGGER_RTT_WriteString(0, "\n");
+    }
+
+    HAL_Delay(30);  // 30ms 间隔，波形更平滑
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
