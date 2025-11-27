@@ -102,9 +102,9 @@ static uint8_t BMI088_Gyro_Init_Table[BMI088_WRITE_GYRO_REG_NUM][3] =
 
 static void Calibrate_MPU_Offset(IMU_Data_t *bmi088);
 
-uint8_t BMI088Init(SPI_HandleTypeDef *bmi088_SPI, uint8_t calibrate)
+uint8_t BMI088Init(SPI_HandleTypeDef *spi_handle, uint8_t calibrate)
 {
-    BMI088_SPI = bmi088_SPI;
+    BMI088_SPI = spi_handle;  // 赋值给全局变量（在BMI088Middleware.c中定义）
     error = BMI088_NO_ERROR;
 
     error |= bmi088_accel_init();

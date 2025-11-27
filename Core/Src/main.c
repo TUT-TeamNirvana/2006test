@@ -26,7 +26,6 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "Allheader.h"
-#include "bsp_dwt.h"  // 添加DWT头文件
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -81,6 +80,32 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN 0 */
 M2006_t motors[2];
 int8_t dir[2] = { +1, -1 };
+
+// BMI088数据发送缓冲区
+static char uart_buffer[256];
+
+/**
+ * @brief 通过UART发送BMI088数据
+ * @param huart UART句柄
+ */
+void Send_BMI088_Data(UART_HandleTypeDef *huart)
+{
+    // 格式化输出BMI088数据
+    int len = sprintf(uart_buffer,
+        "BMI088 Data:\r\n"
+        "Accel: X=%.3f, Y=%.3f, Z=%.3f m/s^2\r\n"
+        "Gyro:  X=%.3f, Y=%.3f, Z=%.3f rad/s\r\n"
+        "Temp:  %.2f C\r\n"
+        "--------------------------------\r\n",
+        BMI088.Accel[0], BMI088.Accel[1], BMI088.Accel[2],
+        BMI088.Gyro[0], BMI088.Gyro[1], BMI088.Gyro[2],
+        BMI088.Temperature
+    );
+    
+    // 通过UART发送
+    HAL_UART_Transmit(huart, (uint8_t*)uart_buffer, len, 1000);
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -120,7 +145,24 @@ int main(void)
   /* USER CODE BEGIN 2 */
   M2006_InitAll(motors, &hcan1);
   User_Uart_Init(&huart6);
-  BMI088Init(&hspi1, 0);
+  
+  // 初始化BMI088（0表示不使用在线标定，使用离线参数）
+  uint8_t bmi088_error = BMI088Init(&hspi1, 0);
+  if (bmi088_error != BMI088_NO_ERROR)
+  {
+    // 初始化失败，通过UART发送错误信息
+    char error_msg[64];
+    int len = sprintf(error_msg, "BMI088 Init Failed! Error: 0x%02X\r\n", bmi088_error);
+    HAL_UART_Transmit(&huart1, (uint8_t*)error_msg, len, 1000);
+  }
+  else
+  {
+    // 初始化成功
+    HAL_UART_Transmit(&huart1, (uint8_t*)"BMI088 Init Success!\r\n", 22, 1000);
+  }
+  
+  HAL_Delay(500);  // 等待一段时间让传感器稳定
+  
   demo_motor_init_lowpos();
   HAL_Delay(1000);
   M2006_SetTarget(&motors[0], dir[0] * 1000);
@@ -131,21 +173,14 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    //HAL_UART_Transmit(&huart1, (uint8_t*)"test_data\r\n", 11, 100);
-    //M2006_UpdateAll(motors, 2);
-    // 确保索引计算正确
-    /*uint32_t index = approx_t % 100;
-    sine_var = (uint32_t)sine_lut[index];  // 显式类型转换
-
-    approx_t++;
-
-    // 调试输出，确认数据正常
-    if (approx_t % 50 == 0) {
-      SEGGER_RTT_printf(0, "Sine wave: index=%lu, value=%lu\n", index, sine_var);
-    }
-
-    HAL_Delay(10);*/
+    // 读取BMI088数据
     BMI088_Read(&BMI088);
+    
+    // 发送数据并通过UART1输出（每100ms发送一次，10Hz频率）
+    Send_BMI088_Data(&huart1);
+    
+    // 延时100ms，控制发送频率为10Hz
+    HAL_Delay(100);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
