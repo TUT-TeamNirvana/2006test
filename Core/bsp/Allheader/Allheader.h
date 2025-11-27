@@ -9,5 +9,6 @@
 #include "servo_motor.h"
 #include "motor_test.h"
 #include "SEGGER_RTT.h"
+#include "BMI088driver.h"
 
 #endif //ALLHEADER_H

@@ -57,6 +57,12 @@
 #define GyOFFSET -0.001786f
 #define GzOFFSET 0.0004346f
 #define gNORM 9.876785f
+#else
+// 默认值（如果没有匹配的ID）
+#define GxOFFSET 0.0f
+#define GyOFFSET 0.0f
+#define GzOFFSET 0.0f
+#define gNORM 9.81f
 #endif
 
 /* IMU数据结构体 */

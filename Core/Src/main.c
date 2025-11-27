@@ -120,6 +120,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   M2006_InitAll(motors, &hcan1);
   User_Uart_Init(&huart6);
+  BMI088Init(&hspi1, 0);
   demo_motor_init_lowpos();
   HAL_Delay(1000);
   M2006_SetTarget(&motors[0], dir[0] * 1000);

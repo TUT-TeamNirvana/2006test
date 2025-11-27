@@ -2,7 +2,7 @@
 #include "BMI088reg.h"
 #include "BMI088Middleware.h"
 #include "bsp_dwt.h"
-#include "bsp_log.h"
+// #include "bsp_log.h"  // 移除日志依赖，不使用bsp_log
 #include <math.h>
 
 #pragma message "this is a legacy support. test the new BMI088 module as soon as possible."
@@ -136,7 +136,7 @@ void Calibrate_MPU_Offset(IMU_Data_t *bmi088)
             bmi088->GyroOffset[2] = GzOFFSET;
             bmi088->gNorm = gNORM;
             bmi088->TempWhenCali = 40;
-            LOGERROR("[BMI088] Calibrate Failed! Use offline params");
+            // LOGERROR("[BMI088] Calibrate Failed! Use offline params");  // 已移除日志
             break;
         }
 
@@ -207,7 +207,7 @@ void Calibrate_MPU_Offset(IMU_Data_t *bmi088)
                 gyroDiff[1] > 0.15f ||
                 gyroDiff[2] > 0.15f)
             {
-                LOGWARNING("[bmi088] calibration was interrupted\n");
+                // LOGWARNING("[bmi088] calibration was interrupted\n");  // 已移除日志
                 break;
             }
 
@@ -257,7 +257,7 @@ uint8_t bmi088_accel_init(void)
     // check the "who am I"
     if (res != BMI088_ACC_CHIP_ID_VALUE)
     {
-        LOGERROR("[bmi088] Can not read bmi088 acc chip id");
+        // LOGERROR("[bmi088] Can not read bmi088 acc chip id");  // 已移除日志
         return BMI088_NO_SENSOR;
     }
 
@@ -302,7 +302,7 @@ uint8_t bmi088_gyro_init(void)
     // check the "who am I"
     if (res != BMI088_GYRO_CHIP_ID_VALUE)
     {
-        LOGERROR("[bmi088] Can not read bmi088 gyro chip id");
+        // LOGERROR("[bmi088] Can not read bmi088 gyro chip id");  // 已移除日志
         return BMI088_NO_SENSOR;
     }
 
