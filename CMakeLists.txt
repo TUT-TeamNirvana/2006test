@@ -54,6 +54,11 @@ add_executable(${CMAKE_PROJECT_NAME}
         Middlewares/Third_Party/SEGGER/RTT/SEGGER_RTT.c
         Core/modules/algorithm/user_lib.c
         Core/bsp/dwt/bsp_dwt.c
+        Core/modules/imu/BMI088driver.c
+        Core/modules/imu/BMI088driver.h
+        Core/modules/imu/BMI088Middleware.c
+        Core/modules/imu/BMI088Middleware.h
+        Core/modules/imu/BMI088reg.h
 )
 
 # Add STM32CubeMX generated sources
@@ -80,6 +85,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         Core/bsp/dwt
         Middlewares/Third_Party/SEGGER/RTT
         Middlewares/Third_Party/SEGGER/Config
+        Core/modules/imu
 )
 
 # Add project symbols (macros)
