@@ -133,9 +133,8 @@ int main(void)
   {
     //HAL_UART_Transmit(&huart1, (uint8_t*)"test_data\r\n", 11, 100);
     //M2006_UpdateAll(motors, 2);
-    //HAL_Delay(100);
     // 确保索引计算正确
-    uint32_t index = approx_t % 100;
+    /*uint32_t index = approx_t % 100;
     sine_var = (uint32_t)sine_lut[index];  // 显式类型转换
 
     approx_t++;
@@ -145,7 +144,8 @@ int main(void)
       SEGGER_RTT_printf(0, "Sine wave: index=%lu, value=%lu\n", index, sine_var);
     }
 
-    HAL_Delay(10);
+    HAL_Delay(10);*/
+    BMI088_Read(&BMI088);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
