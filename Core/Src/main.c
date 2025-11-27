@@ -26,6 +26,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "Allheader.h"
+#include "bsp_dwt.h"  // 添加DWT头文件
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -106,7 +107,8 @@ int main(void)
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
-
+  // 初始化DWT，STM32F407通常是168MHz（根据你的实际配置调整）
+  DWT_Init(168);  // 如果你的CPU频率是其他值，请修改这里（单位：MHz）
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */

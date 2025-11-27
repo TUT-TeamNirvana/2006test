@@ -52,6 +52,8 @@ add_executable(${CMAKE_PROJECT_NAME}
         Middlewares/Third_Party/SEGGER/RTT/SEGGER_RTT.h
         Middlewares/Third_Party/SEGGER/RTT/SEGGER_RTT_printf.c
         Middlewares/Third_Party/SEGGER/RTT/SEGGER_RTT.c
+        Core/modules/algorithm/user_lib.c
+        Core/bsp/dwt/bsp_dwt.c
 )
 
 # Add STM32CubeMX generated sources
@@ -75,6 +77,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         Core/modules/motor/m2006motor
         Core/modules/motor/servo_motor
         Core/bsp/Allheader
+        Core/bsp/dwt
         Middlewares/Third_Party/SEGGER/RTT
         Middlewares/Third_Party/SEGGER/Config
 )
