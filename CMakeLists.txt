@@ -53,7 +53,9 @@ add_executable(${CMAKE_PROJECT_NAME}
         Middlewares/Third_Party/SEGGER/RTT/SEGGER_RTT_printf.c
         Middlewares/Third_Party/SEGGER/RTT/SEGGER_RTT.c
         Core/modules/algorithm/user_lib.c
+        Core/modules/algorithm/user_lib.h
         Core/bsp/dwt/bsp_dwt.c
+        Core/bsp/dwt/bsp_dwt.h
         Core/modules/imu/BMI088driver.c
         Core/modules/imu/BMI088driver.h
         Core/modules/imu/BMI088Middleware.c
@@ -83,9 +85,10 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         Core/modules/motor/servo_motor
         Core/bsp/Allheader
         Core/bsp/dwt
+        Core/modules/imu
+        Core/modules/algorithm
         Middlewares/Third_Party/SEGGER/RTT
         Middlewares/Third_Party/SEGGER/Config
-        Core/modules/imu
 )
 
 # Add project symbols (macros)
@@ -99,6 +102,7 @@ list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_LIBRARIES ob)
 # Add linked libraries
 target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx
+    m  # 链接数学库（支持sqrtf, fabsf等函数）
 
     # Add user defined libraries
 )
