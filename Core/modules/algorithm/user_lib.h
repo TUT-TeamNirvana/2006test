@@ -15,12 +15,14 @@
 
 #include "stdint.h"
 #include "main.h"
-#include "cmsis_os.h"
+// #include "cmsis_os.h"  // 已注释：裸机环境不需要，如果后续配置FreeRTOS可以取消注释
 #include "stm32f407xx.h"
 #include "arm_math.h"
-
+#include <stdlib.h>  // 添加stdlib.h以支持malloc函数
 
 #ifndef user_malloc
+// 如果定义了FreeRTOS，使用FreeRTOS的内存分配
+// 否则使用标准C库的malloc
 #ifdef _CMSIS_OS_H
 #define user_malloc pvPortMalloc
 #else
