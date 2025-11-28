@@ -103,6 +103,6 @@ list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_LIBRARIES ob)
 target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx
     m  # 链接数学库（支持sqrtf, fabsf等函数）
-
     # Add user defined libraries
 )
+target_link_options(${PROJECT_NAME} PRIVATE -u _printf_float) # 启用 printf 浮点支持
