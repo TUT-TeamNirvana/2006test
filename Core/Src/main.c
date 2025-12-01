@@ -80,7 +80,7 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN 0 */
 M2006_t motors[2];
 int8_t dir[2] = { +1, -1 };
-__attribute__((used)) volatile float hss_m1_pid_error  = 0.0f;
+__attribute__((used)) volatile float hss_m1_actual_rpm  = 0.0f;
 
 // BMI088数据发送缓冲区
 static char uart_buffer[256];
@@ -105,6 +105,21 @@ void Send_BMI088_Data(UART_HandleTypeDef *huart)
     
     // 通过UART发送
     HAL_UART_Transmit(huart, (uint8_t*)uart_buffer, len, 1000);
+}
+
+/**
+ * @brief 将浮点数拆分为整数部分和两位小数部分（用于不支持%f的printf）
+ * @param value 输入的浮点数
+ * @param int_part 输出的整数部分指针
+ * @param frac_part 输出的小数部分指针（总为正数，范围0-99）
+ */
+static void float_to_parts(float value, int32_t *int_part, int32_t *frac_part) {
+  // 1. 将浮点数放大100倍并转换为整数（实现四舍五入）
+  int32_t scaled = (int32_t)(value * 100.0f + (value < 0 ? -0.5f : 0.5f));
+
+  // 2. 分离整数和小数部分
+  *int_part = scaled / 100;
+  *frac_part = (scaled < 0 ? -scaled : scaled) % 100; // 小数部分始终取正
 }
 
 /* USER CODE END 0 */
@@ -168,6 +183,29 @@ int main(void)
   HAL_Delay(1000);
   M2006_SetTarget(&motors[0], dir[0] * 1000);
   M2006_SetTarget(&motors[1], dir[1] * 1000);
+  HAL_Delay(5000);
+  // ===== 修复后的PID参数打印（使用整数技巧）=====
+  int32_t kp_int, kp_frac, ki_int, ki_frac, kd_int, kd_frac, max_int, max_frac;
+  float_to_parts(motors[0].pid.Kp, &kp_int, &kp_frac);
+  float_to_parts(motors[0].pid.Ki, &ki_int, &ki_frac);
+  float_to_parts(motors[0].pid.Kd, &kd_int, &kd_frac);
+  float_to_parts(motors[0].pid.output_max, &max_int, &max_frac);
+
+  int32_t target_int, target_frac;
+  float_to_parts(motors[0].target_speed, &target_int, &target_frac);
+
+  SEGGER_RTT_printf(0, "\n===== PID Speed Loop Debug =====\n");
+  SEGGER_RTT_printf(0, "Motor 1 PID Params: Kp=%s%d.%02d, Ki=%s%d.%02d, Kd=%s%d.%02d, MaxOut=%s%d.%02d\n",
+                    (motors[0].pid.Kp < 0 ? "-" : ""), (kp_int < 0 ? -kp_int : kp_int), kp_frac,
+                    (motors[0].pid.Ki < 0 ? "-" : ""), (ki_int < 0 ? -ki_int : ki_int), ki_frac,
+                    (motors[0].pid.Kd < 0 ? "-" : ""), (kd_int < 0 ? -kd_int : kd_int), kd_frac,
+                    (motors[0].pid.output_max < 0 ? "-" : ""), (max_int < 0 ? -max_int : max_int), max_frac);
+  SEGGER_RTT_printf(0, "Initial Target: %s%d.%02d RPM\n",
+                    (motors[0].target_speed < 0 ? "-" : ""),
+                    (target_int < 0 ? -target_int : target_int),
+                    target_frac);
+  SEGGER_RTT_printf(0, "-------------------------------\n");
+  static uint32_t loop_counter = 0;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -175,7 +213,31 @@ int main(void)
   while (1)
   {
     M2006_UpdateAll(motors, 2);
-    hss_m1_pid_error  = motors[0].pid.last_error;     // 最后一次计算的误差
+    hss_m1_actual_rpm = motors[0].feedback.speed_rpm;
+
+    // ===== 每10次循环打印一行紧凑数据 =====
+    if (loop_counter % 10 == 0) {
+      // 1. 将当前所有关键数据转换为整数部分和小数部分
+      int32_t t_int, t_frac, a_int, a_frac, e_int, e_frac, o_int, o_frac, i_int, i_frac;
+      float_to_parts(motors[0].target_speed, &t_int, &t_frac);
+      float_to_parts(motors[0].feedback.speed_rpm, &a_int, &a_frac);
+      float_to_parts(motors[0].pid.last_error, &e_int, &e_frac);
+      float_to_parts(motors[0].pid.output, &o_int, &o_frac);
+      float_to_parts(motors[0].pid.integral, &i_int, &i_frac);
+
+      // 2. 打印
+      SEGGER_RTT_printf(0,
+          "[%05lu] Target:%s%4d.%02d | Actual:%s%5d.%02d | Error:%s%6d.%02d | PID_Out:%s%7d.%02d | I-Term:%s%9d.%02d\n",
+          loop_counter,
+          (motors[0].target_speed < 0 ? "-" : " "), (t_int < 0 ? -t_int : t_int), t_frac,
+          (motors[0].feedback.speed_rpm < 0 ? "-" : " "), (a_int < 0 ? -a_int : a_int), a_frac,
+          (motors[0].pid.last_error < 0 ? "-" : " "), (e_int < 0 ? -e_int : e_int), e_frac,
+          (motors[0].pid.output < 0 ? "-" : " "), (o_int < 0 ? -o_int : o_int), o_frac,
+          (motors[0].pid.integral < 0 ? "-" : " "), (i_int < 0 ? -i_int : i_int), i_frac
+      );
+    }
+    loop_counter++;
+
     HAL_Delay(10);
     /*// 读取BMI088数据
     BMI088_Read(&BMI088);
