@@ -80,6 +80,7 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN 0 */
 M2006_t motors[2];
 int8_t dir[2] = { +1, -1 };
+__attribute__((used)) volatile float hss_m1_pid_error  = 0.0f;
 
 // BMI088数据发送缓冲区
 static char uart_buffer[256];
@@ -173,14 +174,17 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    // 读取BMI088数据
+    M2006_UpdateAll(motors, 2);
+    hss_m1_pid_error  = motors[0].pid.last_error;     // 最后一次计算的误差
+    HAL_Delay(10);
+    /*// 读取BMI088数据
     BMI088_Read(&BMI088);
     
     // 发送数据并通过UART1输出（每100ms发送一次，10Hz频率）
     Send_BMI088_Data(&huart1);
     
     // 延时100ms，控制发送频率为10Hz
-    HAL_Delay(100);
+    HAL_Delay(100);*/
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
