@@ -223,7 +223,7 @@ int main(void)
       float_to_parts(motors[0].feedback.speed_rpm, &a_int, &a_frac);
       float_to_parts(motors[0].pid.last_error, &e_int, &e_frac);
       float_to_parts(motors[0].pid.output, &o_int, &o_frac);
-      float_to_parts(motors[0].pid.integral, &i_int, &i_frac);
+      float_to_parts(motors[0].pid.Ki * motors[0].pid.integral, &i_int, &i_frac);
 
       // 2. 打印
       SEGGER_RTT_printf(0,
@@ -238,7 +238,7 @@ int main(void)
     }
     loop_counter++;
 
-    HAL_Delay(10);
+    HAL_Delay(1);
     /*// 读取BMI088数据
     BMI088_Read(&BMI088);
     

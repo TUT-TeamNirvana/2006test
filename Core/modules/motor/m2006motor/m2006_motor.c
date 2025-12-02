@@ -28,7 +28,7 @@ void M2006_InitAll(M2006_t *motors, CAN_HandleTypeDef *hcan)
         /*motors[i].feedback.speed_rpm = 0;
         motors[i].feedback.given_current = 0;
         motors[i].feedback.temp = 0;*/
-        PID_Init(&motors[i].pid, 0.2f, 0.05f, 0.1f, 10000.0f);
+        PID_Init(&motors[i].pid, 1.0f, 0.0f, 0.0f, 10000.0f);
         CANSetDLC(motors[i].can, 8);
         motor_list[i] = &motors[i];
     }
