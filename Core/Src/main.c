@@ -80,7 +80,8 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN 0 */
 M2006_t motors[2];
 int8_t dir[2] = { +1, -1 };
-__attribute__((used)) volatile float hss_m1_actual_rpm  = 0.0f;
+__attribute__((used)) volatile uint32_t hss_m1_actual_rpm  = 0.0f;
+__attribute__((used)) volatile uint32_t hss_m1_pid_error  = 0.0f;
 
 // BMI088数据发送缓冲区
 static char uart_buffer[256];
@@ -214,6 +215,7 @@ int main(void)
   {
     M2006_UpdateAll(motors, 2);
     hss_m1_actual_rpm = motors[0].feedback.speed_rpm;
+    hss_m1_pid_error  = motors[0].pid.last_error;
 
     // ===== 每10次循环打印一行紧凑数据 =====
     if (loop_counter % 10 == 0) {
