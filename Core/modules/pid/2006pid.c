@@ -17,17 +17,20 @@ void PID_Init(PID_t *pid, float kp, float ki, float kd, float max_output)
 float PID_Calc(PID_t *pid, float ref, float feedback)
 {
     float error = ref - feedback;
-    float derivative = error - pid->last_error;
-    pid->last_error = error;
-
-    // 计算比例项和微分项
-    float p_term = pid->Kp * error;
-    float d_term = pid->Kd * derivative;
     
-    // 计算未限幅的输出（包括当前积分项）
+    // 计算比例项
+    float p_term = pid->Kp * error;
+    
+    // 计算微分项
+    float derivative = error - pid->last_error;
+    float d_term = pid->Kd * derivative;
+    pid->last_error = error;
+    
+    // 计算未限幅的输出（使用当前积分项）
     float output_unlimited = p_term + pid->Ki * pid->integral + d_term;
     
-    // 抗积分饱和：只有在输出未饱和时才累加积分项
+    // 抗积分饱和：在更新积分项之前判断输出是否会饱和
+    // 只有在输出未饱和时才累加积分项
     if (output_unlimited <= pid->output_max && output_unlimited >= -pid->output_max)
     {
         // 输出未饱和，正常累加积分项
