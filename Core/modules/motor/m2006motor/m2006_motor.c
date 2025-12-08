@@ -28,7 +28,7 @@ void M2006_InitAll(M2006_t *motors, CAN_HandleTypeDef *hcan)
         /*motors[i].feedback.speed_rpm = 0;
         motors[i].feedback.given_current = 0;
         motors[i].feedback.temp = 0;*/
-        PID_Init(&motors[i].pid, 1.2f, 0.05f, 0.0f, 10000.0f);
+        PID_Init(&motors[i].pid, 0.7f, 0.05f, 0.0f, 10000.0f);
         CANSetDLC(motors[i].can, 8);
         motor_list[i] = &motors[i];
     }
@@ -52,11 +52,19 @@ void M2006_UpdateAll(M2006_t *motors, uint8_t motor_count)
     int16_t currents[4] = {0};
 
     // 计算每个电机的PID输出电流
+    // 关键修复：先读取反馈数据到局部变量，确保整个PID计算过程中使用同一份数据
+    // 这样可以避免CAN中断在PID计算过程中更新反馈数据导致的不一致问题
     for (int i = 0; i < motor_count && i < 4; i++)
     {
+        // 禁用中断，原子读取反馈数据
+        __disable_irq();
+        int16_t current_feedback = motors[i].feedback.speed_rpm;
+        __enable_irq();
+        
+        // 使用读取到的反馈数据进行PID计算
         float out = PID_Calc(&motors[i].pid,
                              motors[i].target_speed,
-                             motors[i].feedback.speed_rpm);
+                             (float)current_feedback);
         if (out > 10000) out = 10000;
         if (out < -10000) out = -10000;
         currents[i] = (int16_t)out;
