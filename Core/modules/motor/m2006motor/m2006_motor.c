@@ -28,7 +28,9 @@ void M2006_InitAll(M2006_t *motors, CAN_HandleTypeDef *hcan)
         /*motors[i].feedback.speed_rpm = 0;
         motors[i].feedback.given_current = 0;
         motors[i].feedback.temp = 0;*/
-        PID_Init(&motors[i].pid, 0.7f, 0.05f, 0.0f, 10000.0f);
+        PID_Init(&motors[i].pid, 4.0f, 0.01f, 0.0f, 10000.0f);
+        motors[i].feedback.speed_filtered = 0.0f;
+        motors[i].feedback.current_filtered = 0.0f;
         CANSetDLC(motors[i].can, 8);
         motor_list[i] = &motors[i];
     }
@@ -58,13 +60,13 @@ void M2006_UpdateAll(M2006_t *motors, uint8_t motor_count)
     {
         // 禁用中断，原子读取反馈数据
         __disable_irq();
-        int16_t current_feedback = motors[i].feedback.speed_rpm;
+        float current_feedback = motors[i].feedback.speed_filtered;
         __enable_irq();
         
         // 使用读取到的反馈数据进行PID计算
         float out = PID_Calc(&motors[i].pid,
                              motors[i].target_speed,
-                             (float)current_feedback);
+                             current_feedback);
         if (out > 10000) out = 10000;
         if (out < -10000) out = -10000;
         currents[i] = (int16_t)out;
@@ -97,7 +99,19 @@ void M2006_Callback(CANInstance *instance)
     // d[4-5]: 转矩电流 (mA) - d[4]为高字节，d[5]为低字节
     // d[6]: 温度
     // d[7]: 保留
-    motor->feedback.speed_rpm     = (int16_t)((d[2] << 8) | d[3]);
-    motor->feedback.given_current = (int16_t)((d[4] << 8) | d[5]);
+    int16_t raw_speed   = (int16_t)((d[2] << 8) | d[3]);
+    int16_t raw_current = (int16_t)((d[4] << 8) | d[5]);
+
+    motor->feedback.speed_rpm     = raw_speed;
+    motor->feedback.given_current = raw_current;
     motor->feedback.temp          = d[6];
+
+    // 一阶低通滤波，压制转速/电流采样噪声
+    motor->feedback.speed_filtered =
+        (1.0f - M2006_SPEED_SMOOTH_COEF) * motor->feedback.speed_filtered +
+        M2006_SPEED_SMOOTH_COEF * (float)raw_speed;
+
+    motor->feedback.current_filtered =
+        (1.0f - M2006_CURRENT_SMOOTH_COEF) * motor->feedback.current_filtered +
+        M2006_CURRENT_SMOOTH_COEF * (float)raw_current;
 }
