@@ -4,6 +4,9 @@
 #include "2006pid.h"
 #include <math.h>
 
+// 误差死区，抑制小幅噪声引起的抖动（单位与反馈一致，当前为 rpm）
+#define PID_ERROR_DEADBAND 5.0f
+
 void PID_Init(PID_t *pid, float kp, float ki, float kd, float max_output)
 {
     pid->Kp = kp;
@@ -18,6 +21,13 @@ void PID_Init(PID_t *pid, float kp, float ki, float kd, float max_output)
 float PID_Calc(PID_t *pid, float ref, float feedback)
 {
     float error = ref - feedback;
+
+    // 死区：小于阈值的误差视为 0，避免微小噪声驱动输出
+    if (fabsf(error) < PID_ERROR_DEADBAND)
+    {
+        error = 0.0f;
+        pid->last_error = 0.0f; // 重置，避免离开死区时微分突变
+    }
     
     // 计算比例项
     float p_term = pid->Kp * error;

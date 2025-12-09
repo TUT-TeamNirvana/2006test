@@ -10,7 +10,7 @@
 #include "2006pid.h"
 
 // 与 basic_framework 保持一致的一阶低通滤波系数（1.0f 表示关闭滤波）
-#define M2006_SPEED_SMOOTH_COEF   0.85f  // 建议大于 0.85
+#define M2006_SPEED_SMOOTH_COEF   0.995f  // 建议大于 0.85
 #define M2006_CURRENT_SMOOTH_COEF 0.90f  // 建议大于 0.9
 
 #define M2006_MAX_NUM 2

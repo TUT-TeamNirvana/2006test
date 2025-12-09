@@ -214,7 +214,7 @@ int main(void)
   while (1)
   {
     M2006_UpdateAll(motors, 2);
-    hss_m1_actual_rpm = motors[0].feedback.speed_rpm;
+    hss_m1_actual_rpm = motors[0].feedback.speed_filtered;
     hss_m1_pid_error  = motors[0].pid.last_error;
 
     // ===== 每10次循环打印一行紧凑数据 =====
@@ -222,7 +222,7 @@ int main(void)
       // 1. 将当前所有关键数据转换为整数部分和小数部分
       int32_t t_int, t_frac, a_int, a_frac, e_int, e_frac, o_int, o_frac, i_int, i_frac;
       float_to_parts(motors[0].target_speed, &t_int, &t_frac);
-      float_to_parts(motors[0].feedback.speed_rpm, &a_int, &a_frac);
+      float_to_parts(motors[0].feedback.speed_filtered, &a_int, &a_frac);
       float_to_parts(motors[0].pid.last_error, &e_int, &e_frac);
       float_to_parts(motors[0].pid.output, &o_int, &o_frac);
       float_to_parts(motors[0].pid.Ki * motors[0].pid.integral, &i_int, &i_frac);
