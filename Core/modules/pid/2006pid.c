@@ -5,7 +5,7 @@
 #include <math.h>
 
 // 误差死区，抑制小幅噪声引起的抖动（单位与反馈一致，当前为 rpm）
-#define PID_ERROR_DEADBAND 5.0f
+#define PID_ERROR_DEADBAND 10.0f
 
 void PID_Init(PID_t *pid, float kp, float ki, float kd, float max_output)
 {

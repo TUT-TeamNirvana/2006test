@@ -6,6 +6,10 @@
 
 static M2006_t *motor_list[M2006_MAX_NUM] = {0};
 
+// 反馈频率检测相关变量
+static uint32_t feedback_count[M2006_MAX_NUM] = {0};
+static uint32_t feedback_last_time[M2006_MAX_NUM] = {0};
+
 /* -------------------- 初始化所有电机 -------------------- */
 void M2006_InitAll(M2006_t *motors, CAN_HandleTypeDef *hcan)
 {
@@ -114,4 +118,31 @@ void M2006_Callback(CANInstance *instance)
     motor->feedback.current_filtered =
         (1.0f - M2006_CURRENT_SMOOTH_COEF) * motor->feedback.current_filtered +
         M2006_CURRENT_SMOOTH_COEF * (float)raw_current;
+    
+    // 反馈频率检测（仅对第一个电机统计）
+    if (motor->id == 1) {
+        feedback_count[0]++;
+    }
+}
+
+/* -------------------- 获取反馈频率 -------------------- */
+uint32_t M2006_GetFeedbackFrequency(uint8_t motor_id)
+{
+    if (motor_id >= M2006_MAX_NUM) return 0;
+    
+    static uint32_t last_check_time[M2006_MAX_NUM] = {0};
+    static uint32_t last_count[M2006_MAX_NUM] = {0};
+    static uint32_t frequency[M2006_MAX_NUM] = {0};
+    
+    uint32_t now = HAL_GetTick();
+    
+    // 每秒更新一次频率
+    if (now - last_check_time[motor_id] >= 1000) {
+        uint32_t count_diff = feedback_count[motor_id] - last_count[motor_id];
+        frequency[motor_id] = count_diff;  // 每秒的反馈次数 = 频率（Hz）
+        last_count[motor_id] = feedback_count[motor_id];
+        last_check_time[motor_id] = now;
+    }
+    
+    return frequency[motor_id];
 }
