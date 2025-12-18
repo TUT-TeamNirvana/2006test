@@ -182,8 +182,8 @@ int main(void)
   
   demo_motor_init_lowpos();
   HAL_Delay(1000);
-  M2006_SetTarget(&motors[0], dir[0] * 1000);
-  M2006_SetTarget(&motors[1], dir[1] * 1000);
+  M2006_SetTarget(&motors[0], dir[0] * 3000);
+  M2006_SetTarget(&motors[1], dir[1] * 3000);
   HAL_Delay(5000);
   // ===== 修复后的PID参数打印（使用整数技巧）=====
   int32_t kp_int, kp_frac, ki_int, ki_frac, kd_int, kd_frac, max_int, max_frac;
