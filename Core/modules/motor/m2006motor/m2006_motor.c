@@ -110,14 +110,17 @@ void M2006_Callback(CANInstance *instance)
     motor->feedback.given_current = raw_current;
     motor->feedback.temp          = d[6];
 
-    // 一阶低通滤波，压制转速/电流采样噪声
-    motor->feedback.speed_filtered =
-        (1.0f - M2006_SPEED_SMOOTH_COEF) * motor->feedback.speed_filtered +
-        M2006_SPEED_SMOOTH_COEF * (float)raw_speed;
+    // 一阶RC低通滤波，压制转速/电流采样噪声
+    // 假设控制周期约为 1ms（1kHz），离散化形式：y_k = y_{k-1} + alpha * (x_k - y_{k-1})
+    const float dt = 0.001f;  // 1ms 控制周期
+    float alpha_speed   = dt / (M2006_SPEED_LPF_TAU_S   + dt);
+    float alpha_current = dt / (M2006_CURRENT_LPF_TAU_S + dt);
 
-    motor->feedback.current_filtered =
-        (1.0f - M2006_CURRENT_SMOOTH_COEF) * motor->feedback.current_filtered +
-        M2006_CURRENT_SMOOTH_COEF * (float)raw_current;
+    motor->feedback.speed_filtered +=
+        alpha_speed * ((float)raw_speed - motor->feedback.speed_filtered);
+
+    motor->feedback.current_filtered +=
+        alpha_current * ((float)raw_current - motor->feedback.current_filtered);
     
     // 反馈频率检测（仅对第一个电机统计）
     if (motor->id == 1) {
