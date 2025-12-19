@@ -9,9 +9,10 @@
 #include "bsp_can.h"
 #include "2006pid.h"
 
-// 与 basic_framework 保持一致的一阶低通滤波系数（1.0f 表示关闭滤波）
-#define M2006_SPEED_SMOOTH_COEF   0.995f  // 建议大于 0.85
-#define M2006_CURRENT_SMOOTH_COEF 0.90f  // 建议大于 0.9
+// RC一阶低通滤波时间常数（单位：秒）
+// 时间常数越小，滤波越轻，响应越快；时间常数越大，滤波越重，响应越慢
+#define M2006_SPEED_LPF_TAU_S     0.010f  // 10ms，对应截止频率约16Hz
+#define M2006_CURRENT_LPF_TAU_S   0.010f  // 10ms，对应截止频率约16Hz
 
 #define M2006_MAX_NUM 2
 
