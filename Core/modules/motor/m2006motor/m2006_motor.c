@@ -56,12 +56,6 @@ void M2006_SetTarget(M2006_t *motor, float target_rpm)
     motor->target_speed = target_rpm;
 }
 
-/* -------------------- 设置前馈参数 -------------------- */
-void M2006_SetFeedforward(M2006_t *motor, float kff, float kaff)
-{
-    PID_SetFeedforward(&motor->pid, kff, kaff);
-}
-
 /* -------------------- PID计算并统一发送 -------------------- */
 void M2006_UpdateAll(M2006_t *motors, uint8_t motor_count)
 {
