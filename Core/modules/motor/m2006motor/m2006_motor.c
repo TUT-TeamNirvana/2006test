@@ -4,6 +4,9 @@
 #include "m2006_motor.h"
 #include <stdio.h>
 
+// 控制周期定义（单位：秒）
+#define M2006_CONTROL_PERIOD_S 0.001f  // 1ms = 0.001s
+
 static M2006_t *motor_list[M2006_MAX_NUM] = {0};
 
 // 反馈频率检测相关变量
@@ -35,6 +38,13 @@ void M2006_InitAll(M2006_t *motors, CAN_HandleTypeDef *hcan)
         PID_Init(&motors[i].pid, 2.5f, 0.011f, 0.0f, 10000.0f);
         motors[i].feedback.speed_filtered = 0.0f;
         motors[i].feedback.current_filtered = 0.0f;
+        
+        // 设置前馈参数（可根据实际电机特性调整）
+        // Kff: 速度前馈增益，单位 mA/RPM
+        // Kaff: 加速度前馈增益，单位 mA/(RPM/s)
+        // 建议初值：Kff = 0.5~2.0, Kaff = 0.0~0.5
+        PID_SetFeedforward(&motors[i].pid, 0.8f, 0.1f);
+        
         CANSetDLC(motors[i].can, 8);
         motor_list[i] = &motors[i];
     }
@@ -44,6 +54,12 @@ void M2006_InitAll(M2006_t *motors, CAN_HandleTypeDef *hcan)
 void M2006_SetTarget(M2006_t *motor, float target_rpm)
 {
     motor->target_speed = target_rpm;
+}
+
+/* -------------------- 设置前馈参数 -------------------- */
+void M2006_SetFeedforward(M2006_t *motor, float kff, float kaff)
+{
+    PID_SetFeedforward(&motor->pid, kff, kaff);
 }
 
 /* -------------------- PID计算并统一发送 -------------------- */
@@ -67,10 +83,12 @@ void M2006_UpdateAll(M2006_t *motors, uint8_t motor_count)
         float current_feedback = motors[i].feedback.speed_filtered;
         __enable_irq();
         
-        // 使用读取到的反馈数据进行PID计算
+        // 使用读取到的反馈数据进行PID计算（带前馈）
+        // 传入控制周期dt，用于加速度前馈计算
         float out = PID_Calc(&motors[i].pid,
                              motors[i].target_speed,
-                             current_feedback);
+                             current_feedback,
+                             M2006_CONTROL_PERIOD_S);
         if (out > 10000) out = 10000;
         if (out < -10000) out = -10000;
         currents[i] = (int16_t)out;

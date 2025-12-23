@@ -182,6 +182,27 @@ int main(void)
   
   demo_motor_init_lowpos();
   HAL_Delay(1000);
+  
+  // ===== 前馈参数设置示例 =====
+  // 前馈可以显著提高响应速度和减少稳态误差
+  // Kff: 速度前馈增益，单位 mA/RPM
+  //      建议范围 0.5~2.0，根据电机负载调整
+  //      值越大，响应越快，但可能引起超调
+  // Kaff: 加速度前馈增益，单位 mA/(RPM/s)
+  //       建议范围 0.0~0.5，用于补偿惯性
+  //       快速启停时效果明显
+  
+  // 方式1: 使用初始化时的默认值 (Kff=0.8, Kaff=0.1)
+  // 已在 M2006_InitAll 中设置
+  
+  // 方式2: 运行时动态调整前馈参数
+  // M2006_SetFeedforward(&motors[0], 1.0f, 0.15f);  // 增大前馈
+  // M2006_SetFeedforward(&motors[1], 0.6f, 0.05f);  // 减小前馈
+  
+  // 方式3: 禁用前馈（仅使用PID）
+  // M2006_SetFeedforward(&motors[0], 0.0f, 0.0f);
+  // M2006_SetFeedforward(&motors[1], 0.0f, 0.0f);
+  
   M2006_SetTarget(&motors[0], dir[0] * 3000);
   M2006_SetTarget(&motors[1], dir[1] * 3000);
   HAL_Delay(5000);

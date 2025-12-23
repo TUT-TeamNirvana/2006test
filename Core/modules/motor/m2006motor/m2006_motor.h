@@ -36,6 +36,7 @@ typedef struct
 
 void M2006_InitAll(M2006_t *motors, CAN_HandleTypeDef *hcan);
 void M2006_SetTarget(M2006_t *motor, float target_rpm);
+void M2006_SetFeedforward(M2006_t *motor, float kff, float kaff);  // 设置前馈参数
 void M2006_UpdateAll(M2006_t *motors, uint8_t motor_count);
 void M2006_Callback(CANInstance *instance);
 uint32_t M2006_GetFeedbackFrequency(uint8_t motor_id);  // 获取反馈频率（Hz）

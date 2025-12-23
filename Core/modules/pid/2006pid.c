@@ -12,13 +12,22 @@ void PID_Init(PID_t *pid, float kp, float ki, float kd, float max_output)
     pid->Kp = kp;
     pid->Ki = ki;
     pid->Kd = kd;
+    pid->Kff = 0.0f;   // 默认不启用前馈
+    pid->Kaff = 0.0f;  // 默认不启用加速度前馈
     pid->integral = 0;
     pid->last_error = 0;
+    pid->last_ref = 0.0f;
     pid->output = 0;
     pid->output_max = max_output;
 }
 
-float PID_Calc(PID_t *pid, float ref, float feedback)
+void PID_SetFeedforward(PID_t *pid, float kff, float kaff)
+{
+    pid->Kff = kff;
+    pid->Kaff = kaff;
+}
+
+float PID_Calc(PID_t *pid, float ref, float feedback, float dt)
 {
     float error = ref - feedback;
 
@@ -37,8 +46,21 @@ float PID_Calc(PID_t *pid, float ref, float feedback)
     float d_term = pid->Kd * derivative;
     pid->last_error = error;
     
-    // 1. 先计算当前输出（使用当前积分项）
-    float current_output = p_term + pid->Ki * pid->integral + d_term;
+    // ===== 前馈项计算 =====
+    // 1. 速度前馈：根据目标速度直接给出基础输出
+    float feedforward_term = pid->Kff * ref;
+    
+    // 2. 加速度前馈：根据目标速度变化率补偿惯性
+    float acceleration = 0.0f;
+    if (dt > 0.0001f)  // 避免除零
+    {
+        acceleration = (ref - pid->last_ref) / dt;
+    }
+    float accel_feedforward_term = pid->Kaff * acceleration;
+    pid->last_ref = ref;  // 更新上一次目标值
+    
+    // 1. 先计算当前输出（使用当前积分项 + 前馈项）
+    float current_output = p_term + pid->Ki * pid->integral + d_term + feedforward_term + accel_feedforward_term;
     
     // 2. 判断是否应该更新积分项
     int should_update = 0;
@@ -47,9 +69,9 @@ float PID_Calc(PID_t *pid, float ref, float feedback)
     if (fabs(current_output) <= pid->output_max)
     {
         // 当前输出未饱和
-        // 计算加上error后的积分项和输出
+        // 计算加上error后的积分项和输出（包含前馈）
         float potential_integral = pid->integral + error;
-        float potential_output = p_term + pid->Ki * potential_integral + d_term;
+        float potential_output = p_term + pid->Ki * potential_integral + d_term + feedforward_term + accel_feedforward_term;
         
         // 如果加上error后不会饱和，正常积分
         if (fabs(potential_output) <= pid->output_max)
@@ -97,8 +119,8 @@ float PID_Calc(PID_t *pid, float ref, float feedback)
         pid->integral = -integral_max;
     }
     
-    // 5. 重新计算输出（使用更新并限幅后的积分项）
-    pid->output = p_term + pid->Ki * pid->integral + d_term;
+    // 5. 重新计算输出（使用更新并限幅后的积分项 + 前馈项）
+    pid->output = p_term + pid->Ki * pid->integral + d_term + feedforward_term + accel_feedforward_term;
     
     // 6. 输出限幅
     if (pid->output > pid->output_max)
