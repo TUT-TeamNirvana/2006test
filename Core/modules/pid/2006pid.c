@@ -12,8 +12,6 @@ void PID_Init(PID_t *pid, float kp, float ki, float kd, float max_output)
     pid->Kp = kp;
     pid->Ki = ki;
     pid->Kd = kd;
-    pid->Kff = 0.0f;   // 默认不启用前馈
-    pid->Kaff = 0.0f;  // 默认不启用加速度前馈
     pid->integral = 0;
     pid->last_error = 0;
     pid->last_ref = 0.0f;
