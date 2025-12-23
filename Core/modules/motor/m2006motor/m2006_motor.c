@@ -43,7 +43,7 @@ void M2006_InitAll(M2006_t *motors, CAN_HandleTypeDef *hcan)
         // Kff: 速度前馈增益，单位 mA/RPM
         // Kaff: 加速度前馈增益，单位 mA/(RPM/s)
         // 建议初值：Kff = 0.5~2.0, Kaff = 0.0~0.5
-        PID_SetFeedforward(&motors[i].pid, 0.8f, 0.1f);
+        PID_SetFeedforward(&motors[i].pid, 0.08f, 0.1f);
         
         CANSetDLC(motors[i].can, 8);
         motor_list[i] = &motors[i];
