@@ -7,11 +7,13 @@
 // 控制周期定义（单位：秒）
 #define M2006_CONTROL_PERIOD_S 0.001f  // 1ms = 0.001s
 
+// M2006编码器参数
+#define M2006_ENCODER_RESOLUTION 8192  // 编码器分辨率：0-8191
+
 static M2006_t *motor_list[M2006_MAX_NUM] = {0};
 
 // 反馈频率检测相关变量
 static uint32_t feedback_count[M2006_MAX_NUM] = {0};
-static uint32_t feedback_last_time[M2006_MAX_NUM] = {0};
 
 /* -------------------- 初始化所有电机 -------------------- */
 void M2006_InitAll(M2006_t *motors, CAN_HandleTypeDef *hcan)
@@ -30,33 +32,69 @@ void M2006_InitAll(M2006_t *motors, CAN_HandleTypeDef *hcan)
 
         motors[i].can = CANRegister(&config);
         motors[i].id = i + 1; // 电机编号（1~4）
-        motors[i].target_speed = 0;
-        // 初始化反馈数据为0
-        /*motors[i].feedback.speed_rpm = 0;
+        
+        // 初始化串级PID控制器
+        // 外环（位置环）：PD控制，初始参数 Kp=5.0, Ki=0, Kd=0.1
+        // 内环（速度环）：PI控制，使用现有调好的参数 Kp=2.5, Ki=0.011, Kd=0
+        // 速度限制：5000 RPM，电流限制：10000 mA
+        CascadePID_Init(&motors[i].controller,
+                       5.0f, 0.0f, 0.1f,      // 外环PD参数（位置环）
+                       2.5f, 0.011f, 0.0f,    // 内环PI参数（速度环）
+                       5000.0f, 10000.0f);    // 速度限制和电流限制
+        
+        // 默认为速度环模式（向后兼容）
+        motors[i].mode = M2006_MODE_SPEED;
+        motors[i].target = 0.0f;
+        
+        // 初始化反馈数据
+        motors[i].feedback.angle_raw = 0;
+        motors[i].feedback.angle = 0.0f;
+        motors[i].feedback.angle_continuous = 0.0f;
+        motors[i].feedback.speed_rpm = 0;
         motors[i].feedback.given_current = 0;
-        motors[i].feedback.temp = 0;*/
-        PID_Init(&motors[i].pid, 2.5f, 0.011f, 0.0f, 10000.0f);
+        motors[i].feedback.temp = 0;
         motors[i].feedback.speed_filtered = 0.0f;
         motors[i].feedback.current_filtered = 0.0f;
         
-        // 设置前馈参数（可根据实际电机特性调整）
-        // Kff: 速度前馈增益，单位 mA/RPM
-        // Kaff: 加速度前馈增益，单位 mA/(RPM/s)
-        // 建议初值：Kff = 0.5~2.0, Kaff = 0.0~0.5
-        PID_SetFeedforward(&motors[i].pid, 0.0f, 0.0f);
+        // 初始化多圈计数
+        motors[i].total_angle_raw = 0;
+        motors[i].last_angle_raw = 0;
+        
+        // 前馈参数默认为0（禁用）
+        motors[i].controller.inner_loop.Kff = 0.0f;
+        motors[i].controller.inner_loop.Kaff = 0.0f;
         
         CANSetDLC(motors[i].can, 8);
         motor_list[i] = &motors[i];
     }
 }
 
-/* -------------------- 设置目标转速 -------------------- */
-void M2006_SetTarget(M2006_t *motor, float target_rpm)
+/* -------------------- 设置控制模式 -------------------- */
+void M2006_SetControlMode(M2006_t *motor, M2006_ControlMode_e mode)
 {
-    motor->target_speed = target_rpm;
+    motor->mode = mode;
+    CascadePID_SetMode(&motor->controller, (CascadeMode_e)mode);
 }
 
-/* -------------------- PID计算并统一发送 -------------------- */
+/* -------------------- 设置目标速度（速度环模式） -------------------- */
+void M2006_SetSpeedTarget(M2006_t *motor, float target_rpm)
+{
+    motor->target = target_rpm;
+}
+
+/* -------------------- 设置目标位置（串级模式） -------------------- */
+void M2006_SetPosTarget(M2006_t *motor, float target_angle)
+{
+    motor->target = target_angle;
+}
+
+/* -------------------- 兼容旧接口 -------------------- */
+void M2006_SetTarget(M2006_t *motor, float target)
+{
+    motor->target = target;
+}
+
+/* -------------------- 更新所有电机 -------------------- */
 void M2006_UpdateAll(M2006_t *motors, uint8_t motor_count)
 {
     // 安全检查：确保至少有一个电机且can实例有效
@@ -67,24 +105,25 @@ void M2006_UpdateAll(M2006_t *motors, uint8_t motor_count)
     
     int16_t currents[4] = {0};
 
-    // 计算每个电机的PID输出电流
-    // 关键修复：先读取反馈数据到局部变量，确保整个PID计算过程中使用同一份数据
-    // 这样可以避免CAN中断在PID计算过程中更新反馈数据导致的不一致问题
+    // 计算每个电机的控制输出
     for (int i = 0; i < motor_count && i < 4; i++)
     {
         // 禁用中断，原子读取反馈数据
         __disable_irq();
-        float current_feedback = motors[i].feedback.speed_filtered;
+        float current_pos = motors[i].feedback.angle_continuous;
+        float current_speed = motors[i].feedback.speed_filtered;
         __enable_irq();
         
-        // 使用读取到的反馈数据进行PID计算（带前馈）
-        // 传入控制周期dt，用于加速度前馈计算
-        float out = PID_Calc(&motors[i].pid,
-                             motors[i].target_speed,
-                             current_feedback,
-                             M2006_CONTROL_PERIOD_S);
-        if (out > 10000) out = 10000;
-        if (out < -10000) out = -10000;
+        // 根据当前模式计算输出
+        float out = CascadePID_Calculate(&motors[i].controller,
+                                        motors[i].target,
+                                        current_pos,
+                                        current_speed,
+                                        M2006_CONTROL_PERIOD_S);
+        
+        // 输出限幅
+        if (out > 10000.0f) out = 10000.0f;
+        if (out < -10000.0f) out = -10000.0f;
         currents[i] = (int16_t)out;
     }
 
@@ -110,20 +149,51 @@ void M2006_Callback(CANInstance *instance)
     uint8_t *d = instance->rx_buff;
 
     // M2006反馈数据格式：
-    // d[0-1]: 转子机械角度（未使用）
+    // d[0-1]: 转子机械角度 (0-8191) - d[0]为高字节，d[1]为低字节
     // d[2-3]: 转子转速 (rpm) - d[2]为高字节，d[3]为低字节
     // d[4-5]: 转矩电流 (mA) - d[4]为高字节，d[5]为低字节
     // d[6]: 温度
     // d[7]: 保留
+    
+    int16_t raw_angle   = (int16_t)((d[0] << 8) | d[1]);
     int16_t raw_speed   = (int16_t)((d[2] << 8) | d[3]);
     int16_t raw_current = (int16_t)((d[4] << 8) | d[5]);
 
-    motor->feedback.speed_rpm     = raw_speed;
+    // 更新原始数据
+    motor->feedback.angle_raw = raw_angle;
+    motor->feedback.speed_rpm = raw_speed;
     motor->feedback.given_current = raw_current;
-    motor->feedback.temp          = d[6];
+    motor->feedback.temp = d[6];
+    
+    // 计算当前角度（0-360度）
+    motor->feedback.angle = (float)raw_angle / M2006_ENCODER_RESOLUTION * 360.0f;
+    
+    // 多圈角度计算（检测过零点）
+    int16_t delta_angle = raw_angle - motor->last_angle_raw;
+    
+    // 检测过零点：如果角度变化超过半圈（4096），说明过零
+    if (delta_angle < -M2006_ENCODER_RESOLUTION / 2)
+    {
+        // 正向过零（从8191跳到0附近）
+        motor->total_angle_raw += M2006_ENCODER_RESOLUTION + delta_angle;
+    }
+    else if (delta_angle > M2006_ENCODER_RESOLUTION / 2)
+    {
+        // 反向过零（从0跳到8191附近）
+        motor->total_angle_raw += delta_angle - M2006_ENCODER_RESOLUTION;
+    }
+    else
+    {
+        // 正常情况
+        motor->total_angle_raw += delta_angle;
+    }
+    
+    motor->last_angle_raw = raw_angle;
+    
+    // 计算连续角度（度）
+    motor->feedback.angle_continuous = (float)motor->total_angle_raw / M2006_ENCODER_RESOLUTION * 360.0f;
 
     // 一阶RC低通滤波，压制转速/电流采样噪声
-    // 假设控制周期约为 1ms（1kHz），离散化形式：y_k = y_{k-1} + alpha * (x_k - y_{k-1})
     const float dt = 0.001f;  // 1ms 控制周期
     float alpha_speed   = dt / (M2006_SPEED_LPF_TAU_S   + dt);
     float alpha_current = dt / (M2006_CURRENT_LPF_TAU_S + dt);
