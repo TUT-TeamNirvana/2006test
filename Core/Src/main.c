@@ -205,24 +205,57 @@ int main(void)
     
     // ===== 每10次循环打印一行紧凑数据 =====
     if (loop_counter % 10 == 0) {
-      // 1. 将当前所有关键数据转换为整数部分和小数部分
-      int32_t t_int, t_frac, a_int, a_frac, e_int, e_frac, o_int, o_frac, i_int, i_frac;
-      float_to_parts(motors[0].target, &t_int, &t_frac);
-      float_to_parts(motors[0].feedback.speed_filtered, &a_int, &a_frac);
-      float_to_parts(motors[0].controller.inner_loop.last_error, &e_int, &e_frac);
-      float_to_parts(motors[0].controller.inner_loop.output, &o_int, &o_frac);
-      float_to_parts(motors[0].controller.inner_loop.Ki * motors[0].controller.inner_loop.integral, &i_int, &i_frac);
+      if (motors[0].mode == M2006_MODE_SPEED) {
+        // 速度环模式：打印速度环信息
+        int32_t t_int, t_frac, a_int, a_frac, e_int, e_frac, o_int, o_frac, i_int, i_frac;
+        float_to_parts(motors[0].target, &t_int, &t_frac);
+        float_to_parts(motors[0].feedback.speed_filtered, &a_int, &a_frac);
+        float_to_parts(motors[0].controller.inner_loop.last_error, &e_int, &e_frac);
+        float_to_parts(motors[0].controller.inner_loop.output, &o_int, &o_frac);
+        float_to_parts(motors[0].controller.inner_loop.Ki * motors[0].controller.inner_loop.integral, &i_int, &i_frac);
 
-      // 2. 打印
-      SEGGER_RTT_printf(0,
-          "[%05lu] Target:%s%4d.%02d | Actual:%s%5d.%02d | Error:%s%6d.%02d | PID_Out:%s%7d.%02d | I-Term:%s%9d.%02d\n",
-          loop_counter,
-          (motors[0].target < 0 ? "-" : " "), (t_int < 0 ? -t_int : t_int), t_frac,
-          (motors[0].feedback.speed_rpm < 0 ? "-" : " "), (a_int < 0 ? -a_int : a_int), a_frac,
-          (motors[0].controller.inner_loop.last_error < 0 ? "-" : " "), (e_int < 0 ? -e_int : e_int), e_frac,
-          (motors[0].controller.inner_loop.output < 0 ? "-" : " "), (o_int < 0 ? -o_int : o_int), o_frac,
-          (motors[0].controller.inner_loop.integral < 0 ? "-" : " "), (i_int < 0 ? -i_int : i_int), i_frac
-      );
+        SEGGER_RTT_printf(0,
+            "[%05lu] Target:%s%4d.%02d | Actual:%s%5d.%02d | Error:%s%6d.%02d | PID_Out:%s%7d.%02d | I-Term:%s%9d.%02d\n",
+            loop_counter,
+            (motors[0].target < 0 ? "-" : " "), (t_int < 0 ? -t_int : t_int), t_frac,
+            (motors[0].feedback.speed_rpm < 0 ? "-" : " "), (a_int < 0 ? -a_int : a_int), a_frac,
+            (motors[0].controller.inner_loop.last_error < 0 ? "-" : " "), (e_int < 0 ? -e_int : e_int), e_frac,
+            (motors[0].controller.inner_loop.output < 0 ? "-" : " "), (o_int < 0 ? -o_int : o_int), o_frac,
+            (motors[0].controller.inner_loop.integral < 0 ? "-" : " "), (i_int < 0 ? -i_int : i_int), i_frac
+        );
+      }
+      else if (motors[0].mode == M2006_MODE_CASCADE) {
+        // 串级模式：打印双环信息
+        int32_t pt_int, pt_frac, pa_int, pa_frac, pe_int, pe_frac, po_int, po_frac;
+        int32_t st_int, st_frac, sa_int, sa_frac, se_int, se_frac, so_int, so_frac;
+        
+        // 外环（位置环）数据
+        float_to_parts(motors[0].target, &pt_int, &pt_frac);
+        float_to_parts(motors[0].feedback.angle_continuous, &pa_int, &pa_frac);
+        float_to_parts(motors[0].controller.outer_loop.last_error, &pe_int, &pe_frac);
+        float_to_parts(motors[0].controller.outer_loop.output, &po_int, &po_frac);
+        
+        // 内环（速度环）数据
+        float_to_parts(motors[0].controller.outer_loop.output, &st_int, &st_frac); // 内环目标=外环输出
+        float_to_parts(motors[0].feedback.speed_filtered, &sa_int, &sa_frac);
+        float_to_parts(motors[0].controller.inner_loop.last_error, &se_int, &se_frac);
+        float_to_parts(motors[0].controller.inner_loop.output, &so_int, &so_frac);
+        
+        SEGGER_RTT_printf(0,
+            "[%05lu][Cascade] Pos_T:%s%4d.%02d | Pos_A:%s%4d.%02d | Pos_E:%s%5d.%02d | Spd_T:%s%5d.%02d\n",
+            loop_counter,
+            (motors[0].target < 0 ? "-" : " "), (pt_int < 0 ? -pt_int : pt_int), pt_frac,
+            (motors[0].feedback.angle_continuous < 0 ? "-" : " "), (pa_int < 0 ? -pa_int : pa_int), pa_frac,
+            (motors[0].controller.outer_loop.last_error < 0 ? "-" : " "), (pe_int < 0 ? -pe_int : pe_int), pe_frac,
+            (motors[0].controller.outer_loop.output < 0 ? "-" : " "), (st_int < 0 ? -st_int : st_int), st_frac
+        );
+        SEGGER_RTT_printf(0,
+            "             Spd_A:%s%5d.%02d | Spd_E:%s%5d.%02d | Cur_Out:%s%6d.%02d\n",
+            (motors[0].feedback.speed_filtered < 0 ? "-" : " "), (sa_int < 0 ? -sa_int : sa_int), sa_frac,
+            (motors[0].controller.inner_loop.last_error < 0 ? "-" : " "), (se_int < 0 ? -se_int : se_int), se_frac,
+            (motors[0].controller.inner_loop.output < 0 ? "-" : " "), (so_int < 0 ? -so_int : so_int), so_frac
+        );
+      }
     }
     loop_counter++;
 
