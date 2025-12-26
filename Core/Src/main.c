@@ -197,12 +197,14 @@ int main(void)
     hss_m1_actual_rpm = motors[0].feedback.speed_filtered;
     hss_m1_pid_error  = motors[0].controller.inner_loop.last_error;
 
+    /*
     // ===== 每100次循环打印一次反馈频率（每100ms） =====
     if (loop_counter % 100 == 0) {
       uint32_t feedback_freq = M2006_GetFeedbackFrequency(0);
       SEGGER_RTT_printf(0, "[Feedback Freq] Motor 1 CAN Feedback: %lu Hz\n", feedback_freq);
     }
-    
+    */
+
     // ===== 每10次循环打印一行紧凑数据 =====
     if (loop_counter % 10 == 0) {
       if (motors[0].mode == M2006_MODE_SPEED) {
