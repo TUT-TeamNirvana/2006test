@@ -316,7 +316,7 @@ int main(void)
         float_to_parts(motors[0].controller.inner_loop.output, &so_int, &so_frac);
         
         SEGGER_RTT_printf(0,
-            "[%05lu][Cascade] Pos_T:%s%4d.%02d | Pos_A:%s%4d.%02d | Pos_E:%s%5d.%02d | Spd_T:%s%5d.%02d\n",
+            "[%05lu][Cascade] Pos_T:%s%4d.%02d | Pos_A:%s%4d.%02d | Pos_E:%s%5d.%02d | Spd_T:%s%5d.%02d ; ",
             loop_counter,
             (motors[0].target < 0 ? "-" : " "), (pt_int < 0 ? -pt_int : pt_int), pt_frac,
             (motors[0].feedback.angle_continuous < 0 ? "-" : " "), (pa_int < 0 ? -pa_int : pa_int), pa_frac,
@@ -324,7 +324,7 @@ int main(void)
             (motors[0].controller.outer_loop.output < 0 ? "-" : " "), (st_int < 0 ? -st_int : st_int), st_frac
         );
         SEGGER_RTT_printf(0,
-            "             Spd_A:%s%5d.%02d | Spd_E:%s%5d.%02d | Cur_Out:%s%6d.%02d\n",
+            "Spd_A:%s%5d.%02d | Spd_E:%s%5d.%02d | Cur_Out:%s%6d.%02d\n",
             (motors[0].feedback.speed_filtered < 0 ? "-" : " "), (sa_int < 0 ? -sa_int : sa_int), sa_frac,
             (motors[0].controller.inner_loop.last_error < 0 ? "-" : " "), (se_int < 0 ? -se_int : se_int), se_frac,
             (motors[0].controller.inner_loop.output < 0 ? "-" : " "), (so_int < 0 ? -so_int : so_int), so_frac
