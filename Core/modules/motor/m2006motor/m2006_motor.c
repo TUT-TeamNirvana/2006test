@@ -44,7 +44,7 @@ void M2006_InitAll(M2006_t *motors, CAN_HandleTypeDef *hcan)
         
         // 默认为速度环模式（向后兼容）
         motors[i].mode = M2006_MODE_SPEED;        //速度环M2006_MODE_SPEED,速度环-位置环串级M2006_MODE_CASCADE
-        motors[i].controller.mode = M2006_MODE_SPEED;   //控制器模式，两者模式若不一样则会出现误差无法计算的问题
+        motors[i].controller.mode = CASCADE_MODE_SPEED_ONLY;   //控制器模式，两者模式若不一样则会出现误差无法计算的问题，该参数为对应的枚举
         motors[i].target = 0.0f;
         
         // 初始化反馈数据
