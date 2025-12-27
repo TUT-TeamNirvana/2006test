@@ -43,7 +43,7 @@ void M2006_InitAll(M2006_t *motors, CAN_HandleTypeDef *hcan)
                        5000.0f, 10000.0f);    // 速度限制和电流限制
         
         // 默认为速度环模式（向后兼容）
-        motors[i].mode = M2006_MODE_CASCADE;      //速度模式M2006_MODE_SPEED，位置模式M2006_MODE_CASCADE
+        motors[i].mode = M2006_MODE_CASCADE;        //速度环M2006_MODE_SPEED,位置环M2006_MODE_CASCADE
         motors[i].target = 0.0f;
         
         // 初始化反馈数据
@@ -76,21 +76,30 @@ void M2006_SetControlMode(M2006_t *motor, M2006_ControlMode_e mode)
     CascadePID_SetMode(&motor->controller, (CascadeMode_e)mode);
 }
 
-/* -------------------- 设置目标速度（速度环模式） -------------------- */
+/* -------------------- 设置目标速度（仅速度环模式有效） -------------------- */
 void M2006_SetSpeedTarget(M2006_t *motor, float target_rpm)
 {
-    motor->target = target_rpm;
+    // 只在速度环模式下有效
+    if (motor->mode == M2006_MODE_SPEED) {
+        motor->target = target_rpm;
+    }
+    // 非速度环模式下忽略此设置
 }
 
-/* -------------------- 设置目标位置（串级模式） -------------------- */
+/* -------------------- 设置目标位置（仅串级模式有效） -------------------- */
 void M2006_SetPosTarget(M2006_t *motor, float target_angle)
 {
-    motor->target = target_angle;
+    // 只在串级模式下有效
+    if (motor->mode == M2006_MODE_CASCADE) {
+        motor->target = target_angle;
+    }
+    // 非串级模式下忽略此设置
 }
 
-/* -------------------- 兼容旧接口 -------------------- */
+/* -------------------- 设置目标（通用接口，任何模式都有效） -------------------- */
 void M2006_SetTarget(M2006_t *motor, float target)
 {
+    // 通用接口，不检查模式，直接设置
     motor->target = target;
 }
 

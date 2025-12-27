@@ -171,10 +171,12 @@ int main(void)
   
   demo_motor_init_lowpos();
   HAL_Delay(1000);
-  
-  // 设置目标（根据模式自动选择）
+
   M2006_SetSpeedTarget(&motors[0], dir[0] * 3000);
   M2006_SetSpeedTarget(&motors[1], dir[1] * 3000);
+  M2006_SetPosTarget(&motors[0], dir[0] * 0);
+  M2006_SetPosTarget(&motors[1], dir[1] * 0);
+
   HAL_Delay(5000);
   
   // ===== PID参数打印（支持双模式）=====
