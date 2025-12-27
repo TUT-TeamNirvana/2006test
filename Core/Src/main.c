@@ -171,7 +171,8 @@ int main(void)
   
   demo_motor_init_lowpos();
   HAL_Delay(1000);
-
+  M2006_SetControlMode(&motors[0], M2006_MODE_CASCADE);
+  M2006_SetControlMode(&motors[1], M2006_MODE_CASCADE);
   M2006_SetSpeedTarget(&motors[0], dir[0] * 3000.0f);
   M2006_SetSpeedTarget(&motors[1], dir[1] * 3000.0f);
   M2006_SetPosTarget(&motors[0], dir[0] * 0.0f);

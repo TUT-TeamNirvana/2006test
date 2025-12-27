@@ -43,7 +43,8 @@ void M2006_InitAll(M2006_t *motors, CAN_HandleTypeDef *hcan)
                        5000.0f, 10000.0f);    // 速度限制和电流限制
         
         // 默认为速度环模式（向后兼容）
-        motors[i].mode = M2006_MODE_CASCADE;        //速度环M2006_MODE_SPEED,速度环-位置环串级M2006_MODE_CASCADE
+        motors[i].mode = M2006_MODE_SPEED;        //速度环M2006_MODE_SPEED,速度环-位置环串级M2006_MODE_CASCADE
+        motors[i].controller.mode = M2006_MODE_SPEED;   //控制器模式，两者模式若不一样则会出现误差无法计算的问题
         motors[i].target = 0.0f;
         
         // 初始化反馈数据
