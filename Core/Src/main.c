@@ -59,8 +59,18 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN 0 */
 M2006_t motors[2];
 int8_t dir[2] = { +1, -1 };
-__attribute__((used)) volatile uint32_t hss_m1_actual_rpm  = 0.0f;
-__attribute__((used)) volatile uint32_t hss_m1_pid_error  = 0.0f;
+
+// HSS示波器变量 - 速度环模式
+__attribute__((used)) volatile float hss_m1_speed_target = 0.0f;    // 速度目标 (RPM)
+__attribute__((used)) volatile float hss_m1_speed_actual = 0.0f;    // 速度实际 (RPM)
+__attribute__((used)) volatile float hss_m1_speed_error = 0.0f;     // 速度误差 (RPM)
+__attribute__((used)) volatile float hss_m1_current_out = 0.0f;     // 电流输出 (mA)
+
+// HSS示波器变量 - 串级模式（位置环）
+__attribute__((used)) volatile float hss_m1_pos_target = 0.0f;      // 位置目标 (度)
+__attribute__((used)) volatile float hss_m1_pos_actual = 0.0f;      // 位置实际 (度)
+__attribute__((used)) volatile float hss_m1_pos_error = 0.0f;       // 位置误差 (度)
+__attribute__((used)) volatile float hss_m1_pos_output = 0.0f;      // 位置环输出 (RPM)
 
 // BMI088数据发送缓冲区
 static char uart_buffer[256];
@@ -162,30 +172,74 @@ int main(void)
   demo_motor_init_lowpos();
   HAL_Delay(1000);
   
-  M2006_SetTarget(&motors[0], dir[0] * 3000);
-  M2006_SetTarget(&motors[1], dir[1] * 3000);
+  // 设置目标（根据模式自动选择）
+  M2006_SetSpeedTarget(&motors[0], dir[0] * 3000);
+  M2006_SetSpeedTarget(&motors[1], dir[1] * 3000);
   HAL_Delay(5000);
-  // ===== 修复后的PID参数打印（使用整数技巧）=====
-  int32_t kp_int, kp_frac, ki_int, ki_frac, kd_int, kd_frac, max_int, max_frac;
-  float_to_parts(motors[0].controller.inner_loop.Kp, &kp_int, &kp_frac);
-  float_to_parts(motors[0].controller.inner_loop.Ki, &ki_int, &ki_frac);
-  float_to_parts(motors[0].controller.inner_loop.Kd, &kd_int, &kd_frac);
-  float_to_parts(motors[0].controller.inner_loop.output_max, &max_int, &max_frac);
+  
+  // ===== PID参数打印（支持双模式）=====
+  SEGGER_RTT_printf(0, "\n========================================\n");
+  
+  if (motors[0].mode == M2006_MODE_SPEED) {
+    // 速度环模式
+    int32_t kp_int, kp_frac, ki_int, ki_frac, kd_int, kd_frac, max_int, max_frac;
+    float_to_parts(motors[0].controller.inner_loop.Kp, &kp_int, &kp_frac);
+    float_to_parts(motors[0].controller.inner_loop.Ki, &ki_int, &ki_frac);
+    float_to_parts(motors[0].controller.inner_loop.Kd, &kd_int, &kd_frac);
+    float_to_parts(motors[0].controller.inner_loop.output_max, &max_int, &max_frac);
 
-  int32_t target_int, target_frac;
-  float_to_parts(motors[0].target, &target_int, &target_frac);
+    int32_t target_int, target_frac;
+    float_to_parts(motors[0].target, &target_int, &target_frac);
 
-  SEGGER_RTT_printf(0, "\n===== PID Speed Loop Debug =====\n");
-  SEGGER_RTT_printf(0, "Motor 1 PID Params: Kp=%s%d.%02d, Ki=%s%d.%02d, Kd=%s%d.%02d, MaxOut=%s%d.%02d\n",
-                    (motors[0].controller.inner_loop.Kp < 0 ? "-" : ""), (kp_int < 0 ? -kp_int : kp_int), kp_frac,
-                    (motors[0].controller.inner_loop.Ki < 0 ? "-" : ""), (ki_int < 0 ? -ki_int : ki_int), ki_frac,
-                    (motors[0].controller.inner_loop.Kd < 0 ? "-" : ""), (kd_int < 0 ? -kd_int : kd_int), kd_frac,
-                    (motors[0].controller.inner_loop.output_max < 0 ? "-" : ""), (max_int < 0 ? -max_int : max_int), max_frac);
-  SEGGER_RTT_printf(0, "Initial Target: %s%d.%02d RPM\n",
-                    (motors[0].target < 0 ? "-" : ""),
-                    (target_int < 0 ? -target_int : target_int),
-                    target_frac);
-  SEGGER_RTT_printf(0, "-------------------------------\n");
+    SEGGER_RTT_printf(0, "===== Speed Loop Mode =====\n");
+    SEGGER_RTT_printf(0, "Inner Loop (Speed): Kp=%s%d.%02d, Ki=%s%d.%02d, Kd=%s%d.%02d, MaxOut=%s%d.%02d\n",
+                      (motors[0].controller.inner_loop.Kp < 0 ? "-" : ""), (kp_int < 0 ? -kp_int : kp_int), kp_frac,
+                      (motors[0].controller.inner_loop.Ki < 0 ? "-" : ""), (ki_int < 0 ? -ki_int : ki_int), ki_frac,
+                      (motors[0].controller.inner_loop.Kd < 0 ? "-" : ""), (kd_int < 0 ? -kd_int : kd_int), kd_frac,
+                      (motors[0].controller.inner_loop.output_max < 0 ? "-" : ""), (max_int < 0 ? -max_int : max_int), max_frac);
+    SEGGER_RTT_printf(0, "Initial Target: %s%d.%02d RPM\n",
+                      (motors[0].target < 0 ? "-" : ""),
+                      (target_int < 0 ? -target_int : target_int),
+                      target_frac);
+  }
+  else if (motors[0].mode == M2006_MODE_CASCADE) {
+    // 串级模式
+    int32_t okp_int, okp_frac, oki_int, oki_frac, okd_int, okd_frac, omax_int, omax_frac;
+    int32_t ikp_int, ikp_frac, iki_int, iki_frac, ikd_int, ikd_frac, imax_int, imax_frac;
+    
+    // 外环参数
+    float_to_parts(motors[0].controller.outer_loop.Kp, &okp_int, &okp_frac);
+    float_to_parts(motors[0].controller.outer_loop.Ki, &oki_int, &oki_frac);
+    float_to_parts(motors[0].controller.outer_loop.Kd, &okd_int, &okd_frac);
+    float_to_parts(motors[0].controller.outer_loop.output_max, &omax_int, &omax_frac);
+    
+    // 内环参数
+    float_to_parts(motors[0].controller.inner_loop.Kp, &ikp_int, &ikp_frac);
+    float_to_parts(motors[0].controller.inner_loop.Ki, &iki_int, &iki_frac);
+    float_to_parts(motors[0].controller.inner_loop.Kd, &ikd_int, &ikd_frac);
+    float_to_parts(motors[0].controller.inner_loop.output_max, &imax_int, &imax_frac);
+    
+    int32_t target_int, target_frac;
+    float_to_parts(motors[0].target, &target_int, &target_frac);
+
+    SEGGER_RTT_printf(0, "===== Cascade Mode (Position + Speed) =====\n");
+    SEGGER_RTT_printf(0, "Outer Loop (Position): Kp=%s%d.%02d, Ki=%s%d.%02d, Kd=%s%d.%02d, MaxOut=%s%d.%02d RPM\n",
+                      (motors[0].controller.outer_loop.Kp < 0 ? "-" : ""), (okp_int < 0 ? -okp_int : okp_int), okp_frac,
+                      (motors[0].controller.outer_loop.Ki < 0 ? "-" : ""), (oki_int < 0 ? -oki_int : oki_int), oki_frac,
+                      (motors[0].controller.outer_loop.Kd < 0 ? "-" : ""), (okd_int < 0 ? -okd_int : okd_int), okd_frac,
+                      (motors[0].controller.outer_loop.output_max < 0 ? "-" : ""), (omax_int < 0 ? -omax_int : omax_int), omax_frac);
+    SEGGER_RTT_printf(0, "Inner Loop (Speed): Kp=%s%d.%02d, Ki=%s%d.%02d, Kd=%s%d.%02d, MaxOut=%s%d.%02d mA\n",
+                      (motors[0].controller.inner_loop.Kp < 0 ? "-" : ""), (ikp_int < 0 ? -ikp_int : ikp_int), ikp_frac,
+                      (motors[0].controller.inner_loop.Ki < 0 ? "-" : ""), (iki_int < 0 ? -iki_int : iki_int), iki_frac,
+                      (motors[0].controller.inner_loop.Kd < 0 ? "-" : ""), (ikd_int < 0 ? -ikd_int : ikd_int), ikd_frac,
+                      (motors[0].controller.inner_loop.output_max < 0 ? "-" : ""), (imax_int < 0 ? -imax_int : imax_int), imax_frac);
+    SEGGER_RTT_printf(0, "Initial Target: %s%d.%02d Degrees\n",
+                      (motors[0].target < 0 ? "-" : ""),
+                      (target_int < 0 ? -target_int : target_int),
+                      target_frac);
+  }
+  
+  SEGGER_RTT_printf(0, "========================================\n");
   static uint32_t loop_counter = 0;
   /* USER CODE END 2 */
 
@@ -194,16 +248,32 @@ int main(void)
   while (1)
   {
     M2006_UpdateAll(motors, 2);
-    hss_m1_actual_rpm = motors[0].feedback.speed_filtered;
-    hss_m1_pid_error  = motors[0].controller.inner_loop.last_error;
+    
+    // ===== 更新HSS示波器变量（根据模式） =====
+    if (motors[0].mode == M2006_MODE_SPEED) {
+      // 速度环模式
+      hss_m1_speed_target = motors[0].target;
+      hss_m1_speed_actual = motors[0].feedback.speed_filtered;
+      hss_m1_speed_error = motors[0].controller.inner_loop.last_error;
+      hss_m1_current_out = motors[0].controller.inner_loop.output;
+    }
+    else if (motors[0].mode == M2006_MODE_CASCADE) {
+      // 串级模式
+      hss_m1_pos_target = motors[0].target;
+      hss_m1_pos_actual = motors[0].feedback.angle_continuous;
+      hss_m1_pos_error = motors[0].controller.outer_loop.last_error;
+      hss_m1_pos_output = motors[0].controller.outer_loop.output;
+      hss_m1_speed_target = motors[0].controller.outer_loop.output;
+      hss_m1_speed_actual = motors[0].feedback.speed_filtered;
+      hss_m1_speed_error = motors[0].controller.inner_loop.last_error;
+      hss_m1_current_out = motors[0].controller.inner_loop.output;
+    }
 
-    /*
-    // ===== 每100次循环打印一次反馈频率（每100ms） =====
+    /*// ===== 每100次循环打印一次反馈频率（每100ms） =====
     if (loop_counter % 100 == 0) {
       uint32_t feedback_freq = M2006_GetFeedbackFrequency(0);
       SEGGER_RTT_printf(0, "[Feedback Freq] Motor 1 CAN Feedback: %lu Hz\n", feedback_freq);
-    }
-    */
+    }*/
 
     // ===== 每10次循环打印一行紧凑数据 =====
     if (loop_counter % 10 == 0) {
