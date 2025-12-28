@@ -49,8 +49,48 @@ typedef struct
     int16_t last_angle_raw;        // 上次原始角度（用于检测过零点）
 } M2006_t;
 
-// 初始化所有电机（默认速度环模式）
+/**
+ * @brief 初始化单个电机（可为每个电机单独设置PID参数）
+ * @param motor 电机指针
+ * @param hcan CAN句柄
+ * @param motor_id 电机ID (0-3对应0x201-0x204)
+ * @param outer_kp 外环（位置环）比例系数
+ * @param outer_ki 外环（位置环）积分系数
+ * @param outer_kd 外环（位置环）微分系数
+ * @param inner_kp 内环（速度环）比例系数
+ * @param inner_ki 内环（速度环）积分系数
+ * @param inner_kd 内环（速度环）微分系数
+ * @param speed_limit 速度限制 (RPM)
+ * @param current_limit 电流限制 (mA)
+ */
+void M2006_InitSingle(M2006_t *motor, CAN_HandleTypeDef *hcan, uint8_t motor_id,
+                     float outer_kp, float outer_ki, float outer_kd,
+                     float inner_kp, float inner_ki, float inner_kd,
+                     float speed_limit, float current_limit);
+
+/**
+ * @brief 初始化所有电机（使用默认参数）
+ * @param motors 电机数组
+ * @param hcan CAN句柄
+ * @note 使用默认参数，建议后续为每个电机单独调参
+ */
 void M2006_InitAll(M2006_t *motors, CAN_HandleTypeDef *hcan);
+
+/**
+ * @brief 获取内环（速度环）PID指针，用于配置功能
+ * @param motor 电机指针
+ * @return 速度环PID指针
+ * @note 可用于调用 PID_SetFeature、PID_SetIntegralSeparation 等功能配置函数
+ */
+PID_t* M2006_GetInnerPID(M2006_t *motor);
+
+/**
+ * @brief 获取外环（位置环）PID指针，用于配置功能
+ * @param motor 电机指针
+ * @return 位置环PID指针
+ * @note 可用于调用 PID_SetFeature、PID_SetIntegralSeparation 等功能配置函数
+ */
+PID_t* M2006_GetOuterPID(M2006_t *motor);
 
 // 设置控制模式
 void M2006_SetControlMode(M2006_t *motor, M2006_ControlMode_e mode);

@@ -15,59 +15,76 @@ static M2006_t *motor_list[M2006_MAX_NUM] = {0};
 // 反馈频率检测相关变量
 static uint32_t feedback_count[M2006_MAX_NUM] = {0};
 
-/* -------------------- 初始化所有电机 -------------------- */
+/* -------------------- 初始化单个电机 -------------------- */
+void M2006_InitSingle(M2006_t *motor, CAN_HandleTypeDef *hcan, uint8_t motor_id,
+                     float outer_kp, float outer_ki, float outer_kd,
+                     float inner_kp, float inner_ki, float inner_kd,
+                     float speed_limit, float current_limit)
+{
+    uint32_t rx_id = 0x201 + motor_id;
+
+    CAN_Init_Config_s config = {
+        .can_handle = hcan,
+        .tx_id = 0x200,
+        .rx_id = rx_id,
+        .can_module_callback = M2006_Callback,
+        .id = motor
+    };
+
+    motor->can = CANRegister(&config);
+    motor->id = motor_id + 1; // 电机编号（1~4）
+    
+    // 初始化串级PID控制器（每个电机独立参数）
+    CascadePID_Init(&motor->controller,
+                   outer_kp, outer_ki, outer_kd,  // 外环PD参数（位置环）
+                   inner_kp, inner_ki, inner_kd,  // 内环PI参数（速度环）
+                   speed_limit, current_limit);   // 速度限制和电流限制
+    
+    // 默认为速度环模式（向后兼容）
+    motor->mode = M2006_MODE_SPEED;
+    motor->controller.mode = CASCADE_MODE_SPEED_ONLY;
+    motor->target = 0.0f;
+    
+    // 初始化反馈数据
+    motor->feedback.angle_raw = 0;
+    motor->feedback.angle = 0.0f;
+    motor->feedback.angle_continuous = 0.0f;
+    motor->feedback.speed_rpm = 0;
+    motor->feedback.given_current = 0;
+    motor->feedback.temp = 0;
+    motor->feedback.speed_filtered = 0.0f;
+    motor->feedback.current_filtered = 0.0f;
+    
+    // 初始化多圈计数
+    motor->total_angle_raw = 0;
+    motor->last_angle_raw = 0;
+    
+    CANSetDLC(motor->can, 8);
+    motor_list[motor_id] = motor;
+}
+
+/* -------------------- 初始化所有电机（使用默认参数） -------------------- */
 void M2006_InitAll(M2006_t *motors, CAN_HandleTypeDef *hcan)
 {
     for (int i = 0; i < M2006_MAX_NUM; i++)
     {
-        uint32_t rx_id = 0x201 + i;
-
-        CAN_Init_Config_s config = {
-            .can_handle = hcan,
-            .tx_id = 0x200,
-            .rx_id = rx_id,
-            .can_module_callback = M2006_Callback,
-            .id = &motors[i]
-        };
-
-        motors[i].can = CANRegister(&config);
-        motors[i].id = i + 1; // 电机编号（1~4）
-        
-        // 初始化串级PID控制器
-        // 外环（位置环）：PD控制，初始参数 Kp=5.0, Ki=0, Kd=0.1
-        // 内环（速度环）：PI控制，使用现有调好的参数 Kp=2.5, Ki=0.011, Kd=0
-        // 速度限制：5000 RPM，电流限制：10000 mA
-        CascadePID_Init(&motors[i].controller,
-                       5.0f, 0.0f, 0.1f,      // 外环PD参数（位置环）
-                       2.5f, 0.011f, 0.0f,    // 内环PI参数（速度环）
-                       5000.0f, 10000.0f);    // 速度限制和电流限制
-        
-        // 默认为速度环模式（向后兼容）
-        motors[i].mode = M2006_MODE_SPEED;        //速度环M2006_MODE_SPEED,速度环-位置环串级M2006_MODE_CASCADE
-        motors[i].controller.mode = CASCADE_MODE_SPEED_ONLY;   //控制器模式，两者模式若不一样则会出现误差无法计算的问题，该参数为对应的枚举
-        motors[i].target = 0.0f;
-        
-        // 初始化反馈数据
-        motors[i].feedback.angle_raw = 0;
-        motors[i].feedback.angle = 0.0f;
-        motors[i].feedback.angle_continuous = 0.0f;
-        motors[i].feedback.speed_rpm = 0;
-        motors[i].feedback.given_current = 0;
-        motors[i].feedback.temp = 0;
-        motors[i].feedback.speed_filtered = 0.0f;
-        motors[i].feedback.current_filtered = 0.0f;
-        
-        // 初始化多圈计数
-        motors[i].total_angle_raw = 0;
-        motors[i].last_angle_raw = 0;
-        
-        // 前馈参数默认为0（禁用）
-        motors[i].controller.inner_loop.Kff = 0.0f;
-        motors[i].controller.inner_loop.Kaff = 0.0f;
-        
-        CANSetDLC(motors[i].can, 8);
-        motor_list[i] = &motors[i];
+        // 使用默认参数初始化（建议后续为每个电机单独调参）
+        M2006_InitSingle(&motors[i], hcan, i,
+                        5.0f, 0.0f, 0.1f,      // 外环PD参数（位置环）
+                        2.5f, 0.011f, 0.0f,    // 内环PI参数（速度环）
+                        5000.0f, 10000.0f);    // 速度限制和电流限制
     }
+}
+
+/* -------------------- 获取PID控制器（用于单独配置功能） -------------------- */
+PID_t* M2006_GetInnerPID(M2006_t *motor)
+{
+    return CascadePID_GetInnerLoop(&motor->controller);
+}
+
+PID_t* M2006_GetOuterPID(M2006_t *motor)
+{
+    return CascadePID_GetOuterLoop(&motor->controller);
 }
 
 /* -------------------- 设置控制模式 -------------------- */
@@ -84,7 +101,6 @@ void M2006_SetSpeedTarget(M2006_t *motor, float target_rpm)
     if (motor->mode == M2006_MODE_SPEED) {
         motor->target = target_rpm;
     }
-    // 非速度环模式下忽略此设置
 }
 
 /* -------------------- 设置目标位置（仅串级模式有效） -------------------- */
@@ -94,13 +110,11 @@ void M2006_SetPosTarget(M2006_t *motor, float target_angle)
     if (motor->mode == M2006_MODE_CASCADE) {
         motor->target = target_angle;
     }
-    // 非串级模式下忽略此设置
 }
 
 /* -------------------- 设置目标（通用接口，任何模式都有效） -------------------- */
 void M2006_SetTarget(M2006_t *motor, float target)
 {
-    // 通用接口，不检查模式，直接设置
     motor->target = target;
 }
 
