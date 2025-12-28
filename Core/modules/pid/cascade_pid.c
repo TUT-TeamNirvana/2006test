@@ -27,6 +27,39 @@ void CascadePID_Init(CascadePID_t *cpid,
 }
 
 /**
+ * @brief 使用配置结构体初始化串级PID（高级）
+ */
+void CascadePID_InitWithConfig(CascadePID_t *cpid,
+                               const PIDConfig_t *outer_config,
+                               const PIDConfig_t *inner_config,
+                               float speed_limit)
+{
+    // 使用配置初始化外环和内环
+    PID_InitWithConfig(&cpid->outer_loop, outer_config);
+    PID_InitWithConfig(&cpid->inner_loop, inner_config);
+    
+    // 默认为单速度环模式
+    cpid->mode = CASCADE_MODE_SPEED_ONLY;
+    cpid->speed_limit = speed_limit;
+}
+
+/**
+ * @brief 获取外环（位置环）PID指针
+ */
+PID_t* CascadePID_GetOuterLoop(CascadePID_t *cpid)
+{
+    return &cpid->outer_loop;
+}
+
+/**
+ * @brief 获取内环（速度环）PID指针
+ */
+PID_t* CascadePID_GetInnerLoop(CascadePID_t *cpid)
+{
+    return &cpid->inner_loop;
+}
+
+/**
  * @brief 设置控制模式
  */
 void CascadePID_SetMode(CascadePID_t *cpid, CascadeMode_e mode)
