@@ -37,9 +37,14 @@ void M2006_InitSingle(M2006_t *motor, CAN_HandleTypeDef *hcan, uint8_t motor_id,
     // 初始化串级PID控制器（每个电机独立参数）
     CascadePID_Init(&motor->controller,
                    outer_kp, outer_ki, outer_kd,  // 外环PD参数（位置环）
-                   inner_kp, inner_ki, inner_kd,  // 内环PI参数（速度环）
-                   speed_limit, current_limit);   // 速度限制和电流限制
-    
+                   inner_kp, inner_ki, inner_kd);  // 内环PI参数（速度环）
+
+    // 使用新的配置接口设置限幅（保持和原来相同的语义）
+    // speed_limit: 外环输出限幅（通常代表速度目标的限幅，单位 RPM）
+    // current_limit: 内环输出限幅（最终电流限幅，单位 mA）
+    CascadePID_ConfigOuterOutputLimit(&motor->controller, true,  speed_limit,  -speed_limit);
+    CascadePID_ConfigInnerOutputLimit(&motor->controller, true,  current_limit, -current_limit);
+
     // 默认为速度环模式（向后兼容）
     motor->mode = M2006_MODE_SPEED;
     motor->controller.mode = CASCADE_MODE_SPEED_ONLY;
