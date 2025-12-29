@@ -79,4 +79,65 @@ float CascadePID_Calculate(CascadePID_t *cpid,
  */
 void CascadePID_Reset(CascadePID_t *cpid);
 
+
+/*******************************************************************************
+ *  下面是新增的配置接口（帮助在不改变速度环 PID 计算调用方式的前提下，
+ *  为位置环（outer_loop）和速度环（inner_loop）分别配置功能开关和参数）
+ *
+ *  说明：
+ *  - 每个 CascadePID_t 包含独立的 outer_loop 和 inner_loop（类型为 PID_t），
+ *    因此可以通过这些接口为两环分别设置是否启用比例/积分/微分/速度前馈/加速度前馈
+ *    以及每环的 deadband 和 integral_limit。
+ *  - 这些接口只声明在头文件中；实现应在 cascade_pid.c 或 2006pid.c 中完成，
+ *    且不改变现有的 PID_Calc 使用方式（调用方无需更改调用点）。
+ *******************************************************************************/
+
+/**
+ * @brief 为外环（位置环）配置功能开关
+ * @param cpid 串级PID指针
+ * @param enable_kp 是否启用比例项
+ * @param enable_ki 是否启用积分项
+ * @param enable_kd 是否启用微分项
+ * @param enable_kff 是否启用速度前馈
+ * @param enable_kaff 是否启用加速度前馈
+ */
+void CascadePID_ConfigOuterFeatures(CascadePID_t *cpid,
+                                    bool enable_kp,
+                                    bool enable_ki,
+                                    bool enable_kd,
+                                    bool enable_kff,
+                                    bool enable_kaff);
+
+/**
+ * @brief 为内环（速度环）配置功能开关
+ * @param cpid 串级PID指针
+ * @param enable_kp 是否启用比例项
+ * @param enable_ki 是否启用积分项
+ * @param enable_kd 是否启用微分项
+ * @param enable_kff 是否启用速度前馈
+ * @param enable_kaff 是否启用加速度前馈
+ */
+void CascadePID_ConfigInnerFeatures(CascadePID_t *cpid,
+                                    bool enable_kp,
+                                    bool enable_ki,
+                                    bool enable_kd,
+                                    bool enable_kff,
+                                    bool enable_kaff);
+
+/**
+ * @brief 为外环设置可调参数（例如死区与积分限幅）
+ * @param cpid 串级PID指针
+ * @param deadband 误差死区（>0 表示使用该值；<=0 表示使用库默认）
+ * @param integral_limit 积分限幅（<=0 表示使用默认基于 output_max 的限幅）
+ */
+void CascadePID_SetOuterParams(CascadePID_t *cpid, float deadband, float integral_limit);
+
+/**
+ * @brief 为内环设置可调参数（例如死区与积分限幅）
+ * @param cpid 串级PID指针
+ * @param deadband 误差死区（>0 表示使用该值；<=0 表示使用库默认）
+ * @param integral_limit 积分限幅（<=0 表示使用默认基于 output_max 的限幅）
+ */
+void CascadePID_SetInnerParams(CascadePID_t *cpid, float deadband, float integral_limit);
+
 #endif // CASCADE_PID_H

@@ -1,130 +1,224 @@
-//
-// Created by 17087 on 25-11-2.
-//
+/**
+ * 2006pid.c
+ *
+ * Clean, self-contained PID implementation that honors per-feature enable flags
+ * and per-instance parameters. This file implements the interface declared in
+ * 2006pid.h:
+ *
+ *   void PID_Init(PID_t* pid, float kp, float ki, float kd, float max_output);
+ *   void PID_SetFeedforward(PID_t* pid, float kff, float kaff);
+ *   void PID_ConfigFeatures(PID_t* pid, bool enable_kp, bool enable_ki, bool enable_kd,
+ *                           bool enable_kff, bool enable_kaff);
+ *   void PID_SetParams(PID_t* pid, float deadband, float integral_limit);
+ *   float PID_Calc(PID_t* pid, float ref, float feedback, float dt);
+ *
+ * Behavior:
+ *  - Default configuration preserves original behavior: all features enabled,
+ *    default deadband of 4.0f, integral_limit == 0 -> use output_max * 2.0f.
+ *  - Each PID_t instance carries its own flags/params, so position and speed
+ *    loops may be configured independently.
+ *  - PID_Calc respects the feature flags and uses instance params.
+ *
+ * Notes:
+ *  - This implementation intentionally preserves the "anti-windup by checking
+ *    saturation direction" behavior from the existing code.
+ *  - Does not change any external API signatures.
+ */
+
 #include "2006pid.h"
 #include <math.h>
+#include <stddef.h>
 
-// 误差死区，抑制小幅噪声引起的抖动（单位与反馈一致，当前为 rpm）
+#ifndef PID_ERROR_DEADBAND
 #define PID_ERROR_DEADBAND 4.0f
+#endif
 
 void PID_Init(PID_t *pid, float kp, float ki, float kd, float max_output)
 {
+    if (pid == NULL) return;
+
+    /* Gains */
     pid->Kp = kp;
     pid->Ki = ki;
     pid->Kd = kd;
-    pid->integral = 0;
-    pid->last_error = 0;
+
+    /* Feedforward defaults */
+    pid->Kff = 0.0f;
+    pid->Kaff = 0.0f;
+
+    /* State */
+    pid->integral = 0.0f;
+    pid->last_error = 0.0f;
     pid->last_ref = 0.0f;
-    pid->output = 0;
+    pid->output = 0.0f;
     pid->output_max = max_output;
+
+    /* Feature flags: default to enabled for backward compatibility */
+    pid->enable_kp   = true;
+    pid->enable_ki   = true;
+    pid->enable_kd   = true;
+    pid->enable_kff  = true;
+    pid->enable_kaff = true;
+
+    /* Per-instance params */
+    pid->deadband = PID_ERROR_DEADBAND;
+    pid->integral_limit = 0.0f; /* 0 means use default (output_max * 2.0f) */
 }
 
 void PID_SetFeedforward(PID_t *pid, float kff, float kaff)
 {
-    pid->Kff = kff;
+    if (pid == NULL) return;
+    pid->Kff  = kff;
     pid->Kaff = kaff;
+}
+
+void PID_ConfigFeatures(PID_t* pid,
+                        bool enable_kp,
+                        bool enable_ki,
+                        bool enable_kd,
+                        bool enable_kff,
+                        bool enable_kaff)
+{
+    if (pid == NULL) return;
+    pid->enable_kp   = enable_kp;
+    pid->enable_ki   = enable_ki;
+    pid->enable_kd   = enable_kd;
+    pid->enable_kff  = enable_kff;
+    pid->enable_kaff = enable_kaff;
+}
+
+void PID_SetParams(PID_t* pid, float deadband, float integral_limit)
+{
+    if (pid == NULL) return;
+
+    if (deadband > 0.0f) {
+        pid->deadband = deadband;
+    } else {
+        pid->deadband = PID_ERROR_DEADBAND;
+    }
+
+    /* integral_limit: if <= 0, it's treated as "use default" */
+    pid->integral_limit = integral_limit;
 }
 
 float PID_Calc(PID_t *pid, float ref, float feedback, float dt)
 {
+    if (pid == NULL) return 0.0f;
+
+    /* Compute error */
     float error = ref - feedback;
 
-    // 死区：小于阈值的误差视为 0，避免微小噪声驱动输出
-    if (fabsf(error) < PID_ERROR_DEADBAND)
-    {
+    /* Determine effective deadband (instance override or default) */
+    float deadband = (pid->deadband > 0.0f) ? pid->deadband : PID_ERROR_DEADBAND;
+
+    /* Deadband: small errors treated as zero to suppress noise-driven output */
+    if (fabsf(error) < deadband) {
         error = 0.0f;
-        pid->last_error = 0.0f; // 重置，避免离开死区时微分突变
+        /* Reset last_error to avoid derivative kick when leaving deadband */
+        pid->last_error = 0.0f;
     }
-    
-    // 计算比例项
-    float p_term = pid->Kp * error;
-    
-    // 计算微分项
+
+    /* Proportional term (respect feature flag) */
+    float p_term = 0.0f;
+    if (pid->enable_kp) {
+        p_term = pid->Kp * error;
+    }
+
+    /* Derivative term (respect feature flag). Using simple discrete derivative:
+       derivative = error - last_error. Note last_error is updated after computing derivative. */
     float derivative = error - pid->last_error;
-    float d_term = pid->Kd * derivative;
-    pid->last_error = error;
-    
-    // ===== 前馈项计算 =====
-    // 1. 速度前馈：根据目标速度直接给出基础输出
-    float feedforward_term = pid->Kff * ref;
-    
-    // 2. 加速度前馈：根据目标速度变化率补偿惯性
-    float acceleration = 0.0f;
-    if (dt > 0.0001f)  // 避免除零
-    {
-        acceleration = (ref - pid->last_ref) / dt;
+    float d_term = 0.0f;
+    if (pid->enable_kd) {
+        d_term = pid->Kd * derivative;
     }
-    float accel_feedforward_term = pid->Kaff * acceleration;
-    pid->last_ref = ref;  // 更新上一次目标值
-    
-    // 1. 先计算当前输出（使用当前积分项 + 前馈项）
-    float current_output = p_term + pid->Ki * pid->integral + d_term + feedforward_term + accel_feedforward_term;
-    
-    // 2. 判断是否应该更新积分项
-    int should_update = 0;
-    
-    // 判断当前输出是否已饱和
-    if (fabs(current_output) <= pid->output_max)
-    {
-        // 当前输出未饱和
-        // 计算加上error后的积分项和输出（包含前馈）
+
+    /* Feedforward terms (respect flags) */
+    float ff_term = 0.0f;
+    if (pid->enable_kff) {
+        ff_term = pid->Kff * ref;
+    }
+
+    float accel_term = 0.0f;
+    if (pid->enable_kaff) {
+        /* Compute acceleration-like term if dt is valid */
+        if (dt > 0.000001f) {
+            float acceleration = (ref - pid->last_ref) / dt;
+            accel_term = pid->Kaff * acceleration;
+        } else {
+            accel_term = 0.0f;
+        }
+    }
+
+    /* Use last_ref for next step */
+    pid->last_ref = ref;
+
+    /* Integral term contribution (only used in computing outputs; actual integral may be updated after anti-windup check) */
+    float integral_term = pid->enable_ki ? (pid->Ki * pid->integral) : 0.0f;
+
+    /* Preliminary current output with present integral (used to decide anti-windup) */
+    float current_output = p_term + integral_term + d_term + ff_term + accel_term;
+
+    /* Anti-windup: determine whether adding error to integral would cause/prolong saturation.
+       Keep original behavior: allow integral when not saturating or when integral helps exit saturation. */
+    int should_update_integral = 0;
+
+    if (fabsf(current_output) <= pid->output_max) {
+        /* Not currently saturated: check potential output after integral += error */
         float potential_integral = pid->integral + error;
-        float potential_output = p_term + pid->Ki * potential_integral + d_term + feedforward_term + accel_feedforward_term;
-        
-        // 如果加上error后不会饱和，正常积分
-        if (fabs(potential_output) <= pid->output_max)
-        {
-            should_update = 1;
-        }
-        // 如果加上error后会饱和，判断error方向
-        else
-        {
-            // 如果error方向与饱和方向相反，允许积分（帮助退出饱和）
-            if ((potential_output > pid->output_max && error < 0) ||
-                (potential_output < -pid->output_max && error > 0))
-            {
-                should_update = 1;
+        float potential_integral_term = pid->enable_ki ? (pid->Ki * potential_integral) : 0.0f;
+        float potential_output = p_term + potential_integral_term + d_term + ff_term + accel_term;
+
+        if (fabsf(potential_output) <= pid->output_max) {
+            /* Safe to integrate */
+            should_update_integral = 1;
+        } else {
+            /* If potential_output exceeds saturation but error direction is opposite to saturation,
+               allow integration to help exit saturation */
+            if ((potential_output > pid->output_max && error < 0.0f) ||
+                (potential_output < -pid->output_max && error > 0.0f)) {
+                should_update_integral = 1;
+            } else {
+                should_update_integral = 0;
             }
-            // 如果error方向与饱和方向相同，不积分（防止继续饱和）
+        }
+    } else {
+        /* Currently saturated: only integrate if error tends to move output back into range */
+        if ((current_output > pid->output_max && error < 0.0f) ||
+            (current_output < -pid->output_max && error > 0.0f)) {
+            should_update_integral = 1;
+        } else {
+            should_update_integral = 0;
         }
     }
-    else
-    {
-        // 当前输出已饱和
-        // 如果error方向与饱和方向相反，允许积分（帮助退出饱和）
-        if ((current_output > pid->output_max && error < 0) ||
-            (current_output < -pid->output_max && error > 0))
-        {
-            should_update = 1;
-        }
-        // 如果error方向与饱和方向相同，不积分（防止继续饱和）
-    }
-    
-    // 3. 更新积分项
-    if (should_update)
-    {
+
+    /* Update integral if enabled and allowed */
+    if (pid->enable_ki && should_update_integral) {
         pid->integral += error;
     }
-    
-    // 4. 积分限幅（防止积分项过大）
-    float integral_max = pid->output_max * 2.0f;
-    if (pid->integral > integral_max)
-    {
+
+    /* Integral clamping: either instance-specific limit or default based on output_max */
+    float integral_max = (pid->integral_limit > 0.000001f) ? pid->integral_limit : (pid->output_max * 2.0f);
+    if (pid->integral > integral_max) {
         pid->integral = integral_max;
-    }
-    else if (pid->integral < -integral_max)
-    {
+    } else if (pid->integral < -integral_max) {
         pid->integral = -integral_max;
     }
-    
-    // 5. 重新计算输出（使用更新并限幅后的积分项 + 前馈项）
-    pid->output = p_term + pid->Ki * pid->integral + d_term + feedforward_term + accel_feedforward_term;
-    
-    // 6. 输出限幅
-    if (pid->output > pid->output_max)
+
+    /* Recompute integral_term after potential update/clamping */
+    integral_term = pid->enable_ki ? (pid->Ki * pid->integral) : 0.0f;
+
+    /* Final output composition */
+    pid->output = p_term + integral_term + d_term + ff_term + accel_term;
+
+    /* Output limiting */
+    if (pid->output > pid->output_max) {
         pid->output = pid->output_max;
-    else if (pid->output < -pid->output_max)
+    } else if (pid->output < -pid->output_max) {
         pid->output = -pid->output_max;
+    }
+
+    /* Update last_error for next derivative computation (do after everything to match prior behavior) */
+    pid->last_error = error;
 
     return pid->output;
 }
