@@ -2,7 +2,7 @@
  ******************************************************************************
  * @file    cascade_pid.h
  * @brief   串级PID控制器（位置环+速度环）
- * @note    支持外环和内环独立功能配置
+ * @note    方案A：只支持速度环和串级两种模式
  ******************************************************************************
  */
 
@@ -46,34 +46,6 @@ void CascadePID_Init(CascadePID_t *cpid,
                      float outer_kp, float outer_ki, float outer_kd,
                      float inner_kp, float inner_ki, float inner_kd,
                      float speed_limit, float current_limit);
-
-/**
- * @brief 使用配置结构体初始化串级PID（高级）
- * @param cpid 串级PID指针
- * @param outer_config 外环（位置环）配置
- * @param inner_config 内环（速度环）配置
- * @param speed_limit 速度限制（RPM）
- */
-void CascadePID_InitWithConfig(CascadePID_t *cpid,
-                               const PIDConfig_t *outer_config,
-                               const PIDConfig_t *inner_config,
-                               float speed_limit);
-
-/**
- * @brief 获取外环（位置环）PID指针，用于配置功能
- * @param cpid 串级PID指针
- * @return 外环PID指针
- * @note 可用于调用 PID_SetFeature、PID_SetIntegralSeparation 等功能配置函数
- */
-PID_t* CascadePID_GetOuterLoop(CascadePID_t *cpid);
-
-/**
- * @brief 获取内环（速度环）PID指针，用于配置功能
- * @param cpid 串级PID指针
- * @return 内环PID指针
- * @note 可用于调用 PID_SetFeature、PID_SetIntegralSeparation 等功能配置函数
- */
-PID_t* CascadePID_GetInnerLoop(CascadePID_t *cpid);
 
 /**
  * @brief 设置控制模式
