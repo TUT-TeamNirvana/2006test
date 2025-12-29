@@ -6,7 +6,6 @@
  */
 
 #include "cascade_pid.h"
-#include <stdbool.h>
 
 /**
  * @brief 初始化串级PID

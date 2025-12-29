@@ -6,6 +6,7 @@
 #define M2006PID_H
 
 #include <stdbool.h>
+#include <math.h>
 
 /**
  * PID_t - 基本PID结构，向后兼容原有字段

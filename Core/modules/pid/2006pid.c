@@ -26,8 +26,6 @@
  */
 
 #include "2006pid.h"
-#include <math.h>
-#include <stddef.h>
 
 #ifndef PID_ERROR_DEADBAND
 #define PID_ERROR_DEADBAND 4.0f
