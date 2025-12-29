@@ -1,8 +1,8 @@
 /**
  ******************************************************************************
  * @file    cascade_pid.h
- * @brief   串级PID控制器（位置环+速度环）
- * @note    方案A：只支持速度环和串级两种模式
+ * @brief   串级PID控制器（位置环+速度环），支持独立配置
+ * @note    位置环和速度环的功能参数可独立设置，互不影响
  ******************************************************************************
  */
 
@@ -11,7 +11,7 @@
 
 #include "2006pid.h"
 
-/* 控制模式枚举（方案A：只有2种模式） */
+/* 控制模式枚举 */
 typedef enum
 {
     CASCADE_MODE_SPEED_ONLY = 0,    // 单速度环模式（默认）
@@ -21,17 +21,18 @@ typedef enum
 /* 串级PID结构体 */
 typedef struct
 {
-    PID_t outer_loop;  // 外环（位置环，通常用PD）
-    PID_t inner_loop;  // 内环（速度环，通常用PI）
+    PID_t outer_loop;              // 外环（位置环）- 独立配置
+    PID_t inner_loop;              // 内环（速度环）- 独立配置
     
     CascadeMode_e mode;            // 当前控制模式
-    float speed_limit;             // 外环输出限制（速度限制，RPM）
     
 } CascadePID_t;
 
 
+// ==================== 初始化函数 ====================
+
 /**
- * @brief 初始化串级PID
+ * @brief 初始化串级PID（只设置基本PID参数）
  * @param cpid 串级PID指针
  * @param outer_kp 外环比例增益（位置环）
  * @param outer_ki 外环积分增益（位置环，通常为0）
@@ -39,13 +40,14 @@ typedef struct
  * @param inner_kp 内环比例增益（速度环）
  * @param inner_ki 内环积分增益（速度环）
  * @param inner_kd 内环微分增益（速度环，通常为0）
- * @param speed_limit 速度限制（RPM）
- * @param current_limit 电流限制（mA）
+ * @note 功能配置需要使用各自的配置函数单独设置
  */
 void CascadePID_Init(CascadePID_t *cpid,
                      float outer_kp, float outer_ki, float outer_kd,
-                     float inner_kp, float inner_ki, float inner_kd,
-                     float speed_limit, float current_limit);
+                     float inner_kp, float inner_ki, float inner_kd);
+
+
+// ==================== 模式控制函数 ====================
 
 /**
  * @brief 设置控制模式
@@ -53,6 +55,85 @@ void CascadePID_Init(CascadePID_t *cpid,
  * @param mode 控制模式
  */
 void CascadePID_SetMode(CascadePID_t *cpid, CascadeMode_e mode);
+
+
+// ==================== 位置环（外环）功能配置函数 ====================
+
+/**
+ * @brief 配置位置环速度前馈
+ */
+void CascadePID_ConfigOuterFeedforward(CascadePID_t *cpid, bool enable, float kff);
+
+/**
+ * @brief 配置位置环加速度前馈
+ */
+void CascadePID_ConfigOuterAccelFeedforward(CascadePID_t *cpid, bool enable, float kaff);
+
+/**
+ * @brief 配置位置环积分限幅
+ */
+void CascadePID_ConfigOuterIntegralLimit(CascadePID_t *cpid, bool enable, float max, float min);
+
+/**
+ * @brief 配置位置环微分滤波
+ */
+void CascadePID_ConfigOuterDerivativeFilter(CascadePID_t *cpid, bool enable, float coef);
+
+/**
+ * @brief 配置位置环输出限幅
+ */
+void CascadePID_ConfigOuterOutputLimit(CascadePID_t *cpid, bool enable, float max, float min);
+
+/**
+ * @brief 配置位置环抗积分饱和
+ */
+void CascadePID_ConfigOuterAntiWindup(CascadePID_t *cpid, bool enable);
+
+/**
+ * @brief 配置位置环误差死区
+ */
+void CascadePID_ConfigOuterErrorDeadband(CascadePID_t *cpid, bool enable, float deadband);
+
+
+// ==================== 速度环（内环）功能配置函数 ====================
+
+/**
+ * @brief 配置速度环速度前馈
+ */
+void CascadePID_ConfigInnerFeedforward(CascadePID_t *cpid, bool enable, float kff);
+
+/**
+ * @brief 配置速度环加速度前馈
+ */
+void CascadePID_ConfigInnerAccelFeedforward(CascadePID_t *cpid, bool enable, float kaff);
+
+/**
+ * @brief 配置速度环积分限幅
+ */
+void CascadePID_ConfigInnerIntegralLimit(CascadePID_t *cpid, bool enable, float max, float min);
+
+/**
+ * @brief 配置速度环微分滤波
+ */
+void CascadePID_ConfigInnerDerivativeFilter(CascadePID_t *cpid, bool enable, float coef);
+
+/**
+ * @brief 配置速度环输出限幅
+ */
+void CascadePID_ConfigInnerOutputLimit(CascadePID_t *cpid, bool enable, float max, float min);
+
+/**
+ * @brief 配置速度环抗积分饱和
+ */
+void CascadePID_ConfigInnerAntiWindup(CascadePID_t *cpid, bool enable);
+
+/**
+ * @brief 配置速度环误差死区
+ */
+void CascadePID_ConfigInnerErrorDeadband(CascadePID_t *cpid, bool enable, float deadband);
+
+
+// ==================== 计算和控制函数 ====================
 
 /**
  * @brief 串级PID计算
@@ -78,5 +159,21 @@ float CascadePID_Calculate(CascadePID_t *cpid,
  * @param cpid 串级PID指针
  */
 void CascadePID_Reset(CascadePID_t *cpid);
+
+
+// ==================== 便捷访问宏（可选） ====================
+
+/**
+ * @brief 直接访问位置环PID控制器
+ * @note  可用于直接设置参数或读取状态
+ */
+#define CASCADE_GET_OUTER_PID(cpid)  (&((cpid)->outer_loop))
+
+/**
+ * @brief 直接访问速度环PID控制器
+ * @note  可用于直接设置参数或读取状态
+ */
+#define CASCADE_GET_INNER_PID(cpid)  (&((cpid)->inner_loop))
+
 
 #endif // CASCADE_PID_H
