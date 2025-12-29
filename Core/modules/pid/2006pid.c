@@ -6,10 +6,10 @@
 #include <string.h>
 
 // ==================== 私有函数声明 ====================
-static inline int _is_feature_enabled(const PID_t *pid, PIDFeature_e feature);
-static float _calculate_feedforward(PID_t *pid, float ref, float dt);
-static float _calculate_derivative(PID_t *pid, float error, float feedback);
-static int _should_integrate(PID_t *pid, float error, float current_output);
+static int is_feature_enabled(const PID_t *pid, PIDFeature_e feature);
+static float calculate_feedforward(PID_t *pid, float ref, float dt);
+static float calculate_derivative(PID_t *pid, float error, float feedback);
+static int should_integrate(PID_t *pid, float error, float current_output);
 
 // ==================== 初始化函数 ====================
 
@@ -111,7 +111,7 @@ float PID_Calc(PID_t *pid, float ref, float feedback, float dt)
     float error = ref - feedback;
     
     // ===== 1. 误差死区处理 =====
-    if (_is_feature_enabled(pid, PID_FEATURE_ERROR_DEADBAND))
+    if (is_feature_enabled(pid, PID_FEATURE_ERROR_DEADBAND))
     {
         if (fabsf(error) < pid->config.error_deadband)
         {
@@ -124,17 +124,17 @@ float PID_Calc(PID_t *pid, float ref, float feedback, float dt)
     float p_term = pid->config.Kp * error;
     
     // ===== 3. 计算微分项 =====
-    float d_term = _calculate_derivative(pid, error, feedback);
+    float d_term = calculate_derivative(pid, error, feedback);
     
     // ===== 4. 计算前馈项 =====
-    float feedforward_term = _calculate_feedforward(pid, ref, dt);
+    float feedforward_term = calculate_feedforward(pid, ref, dt);
     
     // ===== 5. 计算当前输出（用于判断是否应该积分） =====
     float current_output = p_term + pid->config.Ki * pid->integral + d_term + feedforward_term;
     
     // ===== 6. 积分分离判断 =====
     int can_integrate = 1;
-    if (_is_feature_enabled(pid, PID_FEATURE_INTEGRAL_SEPARATION))
+    if (is_feature_enabled(pid, PID_FEATURE_INTEGRAL_SEPARATION))
     {
         if (fabsf(error) > pid->config.integral_separation_threshold)
         {
@@ -146,7 +146,7 @@ float PID_Calc(PID_t *pid, float ref, float feedback, float dt)
     int should_update = 0;
     if (can_integrate)
     {
-        should_update = _should_integrate(pid, error, current_output);
+        should_update = should_integrate(pid, error, current_output);
     }
     
     // ===== 8. 更新积分项 =====
@@ -191,7 +191,7 @@ float PID_Calc(PID_t *pid, float ref, float feedback, float dt)
 /**
  * @brief 检查功能是否启用
  */
-static inline int _is_feature_enabled(const PID_t *pid, PIDFeature_e feature)
+static int is_feature_enabled(const PID_t *pid, PIDFeature_e feature)
 {
     return (pid->config.features & feature) != 0;
 }
@@ -199,18 +199,18 @@ static inline int _is_feature_enabled(const PID_t *pid, PIDFeature_e feature)
 /**
  * @brief 计算前馈项
  */
-static float _calculate_feedforward(PID_t *pid, float ref, float dt)
+static float calculate_feedforward(PID_t *pid, float ref, float dt)
 {
     float ff_term = 0.0f;
     
     // 速度前馈
-    if (_is_feature_enabled(pid, PID_FEATURE_FEEDFORWARD))
+    if (is_feature_enabled(pid, PID_FEATURE_FEEDFORWARD))
     {
         ff_term += pid->config.Kff * ref;
     }
     
     // 加速度前馈
-    if (_is_feature_enabled(pid, PID_FEATURE_ACCEL_FEEDFORWARD))
+    if (is_feature_enabled(pid, PID_FEATURE_ACCEL_FEEDFORWARD))
     {
         float acceleration = 0.0f;
         if (dt > 0.0001f)  // 避免除零
@@ -227,13 +227,13 @@ static float _calculate_feedforward(PID_t *pid, float ref, float dt)
 /**
  * @brief 计算微分项
  */
-static float _calculate_derivative(PID_t *pid, float error, float feedback)
+static float calculate_derivative(PID_t *pid, float error, float feedback)
 {
     float d_term = 0.0f;
     
     if (pid->config.Kd != 0.0f)
     {
-        if (_is_feature_enabled(pid, PID_FEATURE_DERIVATIVE_ON_MEAS))
+        if (is_feature_enabled(pid, PID_FEATURE_DERIVATIVE_ON_MEAS))
         {
             // 微分先行：微分作用于测量值而非误差
             // 优点：避免设定值突变时的微分冲击
@@ -254,13 +254,13 @@ static float _calculate_derivative(PID_t *pid, float error, float feedback)
 /**
  * @brief 判断是否应该更新积分项（抗积分饱和）
  */
-static int _should_integrate(PID_t *pid, float error, float current_output)
+static int should_integrate(PID_t *pid, float error, float current_output)
 {
     int should_update = 0;
     
     // 计算前馈项（不重复计算，这里简化处理）
     float feedforward_term = 0.0f;
-    if (_is_feature_enabled(pid, PID_FEATURE_FEEDFORWARD))
+    if (is_feature_enabled(pid, PID_FEATURE_FEEDFORWARD))
     {
         feedforward_term += pid->config.Kff * pid->last_ref;
     }
