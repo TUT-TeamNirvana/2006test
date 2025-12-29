@@ -76,17 +76,6 @@ void M2006_InitAll(M2006_t *motors, CAN_HandleTypeDef *hcan)
     }
 }
 
-/* -------------------- 获取PID控制器（用于单独配置功能） -------------------- */
-PID_t* M2006_GetInnerPID(M2006_t *motor)
-{
-    return CascadePID_GetInnerLoop(&motor->controller);
-}
-
-PID_t* M2006_GetOuterPID(M2006_t *motor)
-{
-    return CascadePID_GetOuterLoop(&motor->controller);
-}
-
 /* -------------------- 设置控制模式 -------------------- */
 void M2006_SetControlMode(M2006_t *motor, M2006_ControlMode_e mode)
 {
