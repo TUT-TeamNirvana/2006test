@@ -39,7 +39,15 @@ void M2006_InitSingle(M2006_t *motor, CAN_HandleTypeDef *hcan, uint8_t motor_id,
                    outer_kp, outer_ki, outer_kd,  // 外环PD参数（位置环）
                    inner_kp, inner_ki, inner_kd,  // 内环PI参数（速度环）
                    speed_limit, current_limit);   // 速度限制和电流限制
-    
+
+    //内环（速度环）PID初始化
+    CascadePID_ConfigInnerFeatures(&motor->controller, true, true, false, false, false);
+    CascadePID_SetInnerParams(&motor->controller, 2.0f, 0.0f);
+
+    //外环（位置环）PID初始化
+    CascadePID_ConfigOuterFeatures(&motor->controller, true, false, true, false, false);
+    CascadePID_SetOuterParams(&motor->controller, 0.1f, 0.0f);
+
     // 默认为速度环模式（向后兼容）
     motor->mode = M2006_MODE_SPEED;
     motor->controller.mode = CASCADE_MODE_SPEED_ONLY;
