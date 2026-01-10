@@ -35,15 +35,19 @@ typedef struct
     float integral;
     float last_error;
     float last_ref;      // 上一次的目标值，用于计算加速度前馈
+    float last_feedback; // 上一次的反馈值（用于微分先行实现）
     float output;
     float output_max;
 
+
     /* --- 可配置功能开关（每项为独立布尔开关） --- */
-    bool enable_kp;      // 是否启用比例项（默认 true）
-    bool enable_ki;      // 是否启用积分项（默认 true）
-    bool enable_kd;      // 是否启用微分项（默认 true）
-    bool enable_kff;     // 是否启用速度前馈（默认 true）
-    bool enable_kaff;    // 是否启用加速度前馈（默认 true）
+    bool enable_kp;         // 是否启用比例项（默认 true）
+    bool enable_ki;         // 是否启用积分项（默认 true）
+    bool enable_kd;         // 是否启用微分项（默认 true）
+    bool enable_d_on_meas;  // 是否启用微分先行（基于测量，默认 false）
+    bool enable_kff;        // 是否启用速度前馈（默认 true）
+    bool enable_kaff;       // 是否启用加速度前馈（默认 true）
+
 
     /* --- 可配置参数 --- */
     float deadband;      // 误差死区（与反馈单位一致，默认与旧实现兼容）
@@ -66,6 +70,7 @@ void PID_ConfigFeatures(PID_t* pid,
                         bool enable_kp,
                         bool enable_ki,
                         bool enable_kd,
+                        bool enable_d_on_meas,
                         bool enable_kff,
                         bool enable_kaff);
 

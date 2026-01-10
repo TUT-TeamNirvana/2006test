@@ -19,7 +19,7 @@
 
 void PID_Init(PID_t *pid, float kp, float ki, float kd, float max_output)
 {
-    if (pid == NULL) return;    // 空指针检查，返回0
+    if (pid == NULL) return;    // 空指针检查，返回
 
     /* 增益参数 */
     pid->Kp = kp;
@@ -34,13 +34,16 @@ void PID_Init(PID_t *pid, float kp, float ki, float kd, float max_output)
     pid->integral = 0.0f;
     pid->last_error = 0.0f;
     pid->last_ref = 0.0f;
+    pid->last_feedback = 0.0f; /* 初始化上一次反馈，用于微分先行 */
     pid->output = 0.0f;
     pid->output_max = max_output;
 
-    /* 功能标志：默认全部启用以保持向后兼容性 */
+    /* 功能标志：默认全部启用以保持向后兼容性
+       注意：微分先行（enable_d_on_meas）默认关闭，避免改变原有行为 */
     pid->enable_kp   = true;
     pid->enable_ki   = true;
     pid->enable_kd   = true;
+    pid->enable_d_on_meas = false;
     pid->enable_kff  = true;
     pid->enable_kaff = true;
 
@@ -60,15 +63,17 @@ void PID_ConfigFeatures(PID_t* pid,
                         bool enable_kp,
                         bool enable_ki,
                         bool enable_kd,
+                        bool enable_d_on_meas,
                         bool enable_kff,
                         bool enable_kaff)
 {
     if (pid == NULL) return;
-    pid->enable_kp   = enable_kp;
-    pid->enable_ki   = enable_ki;
-    pid->enable_kd   = enable_kd;
-    pid->enable_kff  = enable_kff;
-    pid->enable_kaff = enable_kaff;
+    pid->enable_kp       = enable_kp;
+    pid->enable_ki       = enable_ki;
+    pid->enable_kd       = enable_kd;
+    pid->enable_d_on_meas= enable_d_on_meas; /* 启用基于测量的微分（微分先行）*/
+    pid->enable_kff      = enable_kff;
+    pid->enable_kaff     = enable_kaff;
 }
 
 void PID_SetParams(PID_t* pid, float deadband, float integral_limit)
@@ -110,20 +115,33 @@ float PID_Calc(PID_t *pid, float ref, float feedback, float dt)
         p_term = pid->Kp * error;
     }
 
-    /* 微分项：只在死区外计算。
-       这避免了如果之前强行将last_error设为零时，
-       离开死区时产生大的微分冲击。 */
+    /* 微分项：
+       - 如果启用了微分先行（enable_d_on_meas），使用测量微分（基于反馈变化）：
+         derivative = - (feedback - last_feedback)。这样可以避免 setpoint 突变
+         直接产生大的微分脉冲（常见的 D-kick）。
+       - 如果未启用微分先行，则沿用基于误差的微分（但在死区内不计算/更新）以保持兼容。
+       注意：在死区内我们仍然抑制微分贡献以减少噪声影响。 */
     float derivative = 0.0f;
     float d_term = 0.0f;
-    if (!in_deadband) {
-        derivative = error - pid->last_error;
-        if (pid->enable_kd) {
+    if (pid->enable_d_on_meas) {
+        /* 基于测量的微分（微分先行） */
+        derivative = -(feedback - pid->last_feedback);
+        if (!in_deadband && pid->enable_kd) {
             d_term = pid->Kd * derivative;
+        } else {
+            d_term = 0.0f;
         }
     } else {
-        /* 在死区内 => 微分项贡献为零 */
-        derivative = 0.0f;
-        d_term = 0.0f;
+        /* 传统基于误差的微分：仅在死区外计算 */
+        if (!in_deadband) {
+            derivative = error - pid->last_error;
+            if (pid->enable_kd) {
+                d_term = pid->Kd * derivative;
+            }
+        } else {
+            derivative = 0.0f;
+            d_term = 0.0f;
+        }
     }
 
     /* 前馈项 */
@@ -204,10 +222,14 @@ float PID_Calc(PID_t *pid, float ref, float feedback, float dt)
     }
 
     /* 只有在死区外才更新last_error（这样下一次的微分是相对于
-       最后一次有意义的误差）。这避免了离开死区时的微分冲击。 */
+       最后一次有意义的误差）。这避免了离开死区时的微分冲击。
+       同时更新上一次的反馈值 last_feedback，以支持微分先行（基于测量）
+       的下一次计算。这里在更新 last_error 之后更新 last_feedback。 */
     if (!in_deadband) {
         pid->last_error = error;
     }
+    /* 无论是否在死区，都记录上一次反馈，用于下次启用微分先行时使用 */
+    pid->last_feedback = feedback;
 
     return pid->output;
 }

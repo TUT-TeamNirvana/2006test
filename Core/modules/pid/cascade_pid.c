@@ -105,12 +105,14 @@ void CascadePID_ConfigOuterFeatures(CascadePID_t *cpid,
                                     bool enable_kp,
                                     bool enable_ki,
                                     bool enable_kd,
+                                    bool enable_d_on_meas,
                                     bool enable_kff,
                                     bool enable_kaff)
 {
     if (cpid == NULL) return;
     PID_ConfigFeatures(&cpid->outer_loop,
                        enable_kp, enable_ki, enable_kd,
+                       enable_d_on_meas,
                        enable_kff, enable_kaff);
 }
 
@@ -121,12 +123,14 @@ void CascadePID_ConfigInnerFeatures(CascadePID_t *cpid,
                                     bool enable_kp,
                                     bool enable_ki,
                                     bool enable_kd,
+                                    bool enable_d_on_meas,
                                     bool enable_kff,
                                     bool enable_kaff)
 {
     if (cpid == NULL) return;
     PID_ConfigFeatures(&cpid->inner_loop,
                        enable_kp, enable_ki, enable_kd,
+                       enable_d_on_meas,
                        enable_kff, enable_kaff);
 }
 

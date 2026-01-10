@@ -101,10 +101,21 @@ void CascadePID_Reset(CascadePID_t *cpid);
  * @param enable_kff 是否启用速度前馈
  * @param enable_kaff 是否启用加速度前馈
  */
+/**
+ * @brief 为外环（位置环）配置功能开关
+ * @param cpid 串级PID指针
+ * @param enable_kp 是否启用比例项
+ * @param enable_ki 是否启用积分项
+ * @param enable_kd 是否启用微分项
+ * @param enable_d_on_meas 是否启用微分先行（基于测量），true=使用测量导数代替误差导数
+ * @param enable_kff 是否启用速度前馈
+ * @param enable_kaff 是否启用加速度前馈
+ */
 void CascadePID_ConfigOuterFeatures(CascadePID_t *cpid,
                                     bool enable_kp,
                                     bool enable_ki,
                                     bool enable_kd,
+                                    bool enable_d_on_meas,
                                     bool enable_kff,
                                     bool enable_kaff);
 
@@ -117,10 +128,21 @@ void CascadePID_ConfigOuterFeatures(CascadePID_t *cpid,
  * @param enable_kff 是否启用速度前馈
  * @param enable_kaff 是否启用加速度前馈
  */
+/**
+ * @brief 为内环（速度环）配置功能开关
+ * @param cpid 串级PID指针
+ * @param enable_kp 是否启用比例项
+ * @param enable_ki 是否启用积分项
+ * @param enable_kd 是否启用微分项
+ * @param enable_d_on_meas 是否启用微分先行（基于测量），true=使用测量导数代替误差导数
+ * @param enable_kff 是否启用速度前馈
+ * @param enable_kaff 是否启用加速度前馈
+ */
 void CascadePID_ConfigInnerFeatures(CascadePID_t *cpid,
                                     bool enable_kp,
                                     bool enable_ki,
                                     bool enable_kd,
+                                    bool enable_d_on_meas,
                                     bool enable_kff,
                                     bool enable_kaff);
 
