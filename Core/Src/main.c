@@ -60,6 +60,7 @@ void SystemClock_Config(void);
 M2006_t motors[4];
 int8_t dir[4] = { +1, +1, -1, -1 };
 
+/*
 // HSS示波器变量 - 速度环模式
 __attribute__((used)) volatile float hss_m1_speed_target = 0.0f;    // 速度目标 (RPM)
 __attribute__((used)) volatile float hss_m1_speed_actual = 0.0f;    // 速度实际 (RPM)
@@ -78,7 +79,7 @@ static char uart_buffer[256];
 /**
  * @brief 通过UART发送BMI088数据
  * @param huart UART句柄
- */
+ #1#
 void Send_BMI088_Data(UART_HandleTypeDef *huart)
 {
     // 格式化输出BMI088数据
@@ -102,7 +103,7 @@ void Send_BMI088_Data(UART_HandleTypeDef *huart)
  * @param value 输入的浮点数
  * @param int_part 输出的整数部分指针
  * @param frac_part 输出的小数部分指针（总为正数，范围0-99）
- */
+ #1#
 static void float_to_parts(float value, int32_t *int_part, int32_t *frac_part) {
   // 1. 将浮点数放大100倍并转换为整数（实现四舍五入）
   int32_t scaled = (int32_t)(value * 100.0f + (value < 0 ? -0.5f : 0.5f));
@@ -111,6 +112,7 @@ static void float_to_parts(float value, int32_t *int_part, int32_t *frac_part) {
   *int_part = scaled / 100;
   *frac_part = (scaled < 0 ? -scaled : scaled) % 100; // 小数部分始终取正
 }
+*/
 
 /* USER CODE END 0 */
 
@@ -150,9 +152,9 @@ int main(void)
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
   M2006_InitAll(motors, &hcan1);
-  User_Uart_Init(&huart6);
+  //User_Uart_Init(&huart6);
   
-  // 初始化BMI088（0表示不使用在线标定，使用离线参数）
+  /*// 初始化BMI088（0表示不使用在线标定，使用离线参数）
   uint8_t bmi088_error = BMI088Init(&hspi1, 0);
   if (bmi088_error != BMI088_NO_ERROR)
   {
@@ -165,24 +167,24 @@ int main(void)
   {
     // 初始化成功
     HAL_UART_Transmit(&huart1, (uint8_t*)"BMI088 Init Success!\r\n", 22, 1000);
-  }
+  }*/
   
   HAL_Delay(500);  // 等待一段时间让传感器稳定
   
-  demo_motor_init_lowpos();
+  /*demo_motor_init_lowpos();*/
   HAL_Delay(1000);
   M2006_SetControlMode(&motors[0], M2006_MODE_SPEED);
   M2006_SetControlMode(&motors[1], M2006_MODE_SPEED);
   M2006_SetControlMode(&motors[2], M2006_MODE_SPEED);
-  M2006_SetControlMode(&motors[3], M2006_MODE_SPEED);
-  M2006_SetSpeedTarget(&motors[0], dir[0] * 2000.0f);
-  M2006_SetSpeedTarget(&motors[1], dir[0] * 2000.0f);
-  M2006_SetSpeedTarget(&motors[0], dir[1] * 2000.0f);
-  M2006_SetSpeedTarget(&motors[1], dir[1] * 2000.0f);
+  //M2006_SetControlMode(&motors[3], M2006_MODE_SPEED);
+  M2006_SetSpeedTarget(&motors[0], dir[0] * 100.0f);
+  M2006_SetSpeedTarget(&motors[1], dir[0] * 200.0f);
+  M2006_SetSpeedTarget(&motors[2], dir[1] * 200.0f);
+  //M2006_SetSpeedTarget(&motors[3], dir[1] * 5000.0f);
   /*M2006_SetPosTarget(&motors[0], dir[0] * 0.0f);
   M2006_SetPosTarget(&motors[1], dir[1] * 0.0f);*/
 
-  HAL_Delay(5000);
+  /*HAL_Delay(5000);
   
   // ===== PID参数打印（支持双模式）=====
   SEGGER_RTT_printf(0, "\n========================================\n");
@@ -247,7 +249,7 @@ int main(void)
   }
   
   SEGGER_RTT_printf(0, "========================================\n");
-  static uint32_t loop_counter = 0;
+  static uint32_t loop_counter = 0;*/
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -256,7 +258,7 @@ int main(void)
   {
     M2006_UpdateAll(motors, 2);
     
-    // ===== 更新HSS示波器变量（根据模式） =====
+    /*// ===== 更新HSS示波器变量（根据模式） =====
     if (motors[0].mode == M2006_MODE_SPEED) {
       // 速度环模式
       hss_m1_speed_target = motors[0].target;
@@ -276,11 +278,11 @@ int main(void)
       hss_m1_current_out = motors[0].controller.inner_loop.output;
     }
 
-    /*// ===== 每100次循环打印一次反馈频率（每100ms） =====
+    /#1#/ ===== 每100次循环打印一次反馈频率（每100ms） =====
     if (loop_counter % 100 == 0) {
       uint32_t feedback_freq = M2006_GetFeedbackFrequency(0);
       SEGGER_RTT_printf(0, "[Feedback Freq] Motor 1 CAN Feedback: %lu Hz\n", feedback_freq);
-    }*/
+    }#1#
 
     // ===== 每10次循环打印一行紧凑数据 =====
     if (loop_counter % 10 == 0) {
@@ -336,7 +338,7 @@ int main(void)
         );
       }
     }
-    loop_counter++;
+    loop_counter++;*/
 
     HAL_Delay(1);
     /*// 读取BMI088数据
