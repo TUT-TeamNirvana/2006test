@@ -57,8 +57,8 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-M2006_t motors[4];
-int8_t dir[4] = { +1, +1, -1, -1 };
+M2006_t motors[3];
+int8_t dir[3] = { +1, +1, -1};
 
 /*
 // HSS示波器变量 - 速度环模式
@@ -256,7 +256,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    M2006_UpdateAll(motors, 2);
+    M2006_UpdateAll(motors, 3);
     
     /*// ===== 更新HSS示波器变量（根据模式） =====
     if (motors[0].mode == M2006_MODE_SPEED) {
