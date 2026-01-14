@@ -179,8 +179,8 @@ int main(void)
   /*M2006_SetControlMode(&motors[3], M2006_MODE_SPEED);
   M2006_SetControlMode(&motors[4], M2006_MODE_SPEED);*/
   M2006_SetSpeedTarget(&motors[0], dir[0] * 400.0f);
-  M2006_SetSpeedTarget(&motors[1], dir[1] * 600.0f);
-  M2006_SetSpeedTarget(&motors[2], dir[2] * 600.0f);
+  M2006_SetSpeedTarget(&motors[1], dir[1] * 4500.0f);
+  M2006_SetSpeedTarget(&motors[2], dir[2] * 4500.0f);
   /*M2006_SetSpeedTarget(&motors[3], dir[3] * 600.0f);
   M2006_SetSpeedTarget(&motors[4], dir[4] * 600.0f);*/
   /*M2006_SetPosTarget(&motors[0], dir[0] * 0.0f);
