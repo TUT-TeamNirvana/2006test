@@ -63,6 +63,10 @@ add_executable(${CMAKE_PROJECT_NAME}
         Core/modules/imu/BMI088Middleware.c
         Core/modules/imu/BMI088Middleware.h
         Core/modules/imu/BMI088reg.h
+        Core/bsp/sbus/sbus.c
+        Core/bsp/sbus/sbus.h
+        Core/bsp/usb/usb.c
+        Core/bsp/usb/usb.h
 )
 
 # Add STM32CubeMX generated sources
