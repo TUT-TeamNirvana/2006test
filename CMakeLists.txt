@@ -91,6 +91,8 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         Core/modules/motor/servo_motor
         Core/bsp/Allheader
         Core/bsp/dwt
+        Core/bsp/sbus
+        Core/bsp/usb
         Core/modules/imu
         Core/modules/algorithm
         Middlewares/Third_Party/SEGGER/RTT

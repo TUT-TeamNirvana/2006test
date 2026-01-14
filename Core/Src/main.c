@@ -24,6 +24,7 @@
 #include "usart.h"
 #include "usb_device.h"
 #include "gpio.h"
+#include "sbus.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -59,9 +60,35 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-M2006_t motors[3];
-int8_t dir[3] = { +1, +1, -1};
+extern CAN_HandleTypeDef hcan1;
+extern uint16_t rc_ch[2]; // rc_ch[0]: X轴（左右转），rc_ch[1]: Y轴（前进）
 
+M2006_t motors[4];
+int8_t dir[4] = { +1, +1, -1, -1 }; // 按照电机安装方向
+
+// 映射函数
+float mapf(float x, float in_min, float in_max, float out_min, float out_max)
+{
+  if (x < in_min) x = in_min;
+  if (x > in_max) x = in_max;
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+// 底盘运动控制
+void Chassis_Control(float vx, float vy, float wz)
+{
+  // 麦克纳姆轮运动学分配 (X形布局)
+  float v1 = +vx - vy - wz;  // 左前
+  float v2 = +vx + vy - wz;  // 左后
+  float v3 = +vx - vy + wz;  // 右后
+  float v4 = +vx + vy + wz;  // 右前
+
+  // 应用安装方向表（你定义的）
+  M2006_SetSpeedTarget(&motors[0], dir[0] * v1);
+  M2006_SetSpeedTarget(&motors[1], dir[1] * v2);
+  M2006_SetSpeedTarget(&motors[2], dir[2] * v3);
+  M2006_SetSpeedTarget(&motors[3], dir[3] * v4);
+}
 /*
 // HSS示波器变量 - 速度环模式
 __attribute__((used)) volatile float hss_m1_speed_target = 0.0f;    // 速度目标 (RPM)
@@ -156,7 +183,15 @@ int main(void)
   MX_USART3_UART_Init();
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
+  SBUS_Init();
+  rc.channels[0] = 1025;
+  rc.channels[1] = 1025;
+  rc.channels[2] = 240;
+  rc.channels[3] = 1025;
   M2006_InitAll(motors, &hcan1);
+
+  float vx = 0, wz = 0, vy = 0;
+  uint32_t last = HAL_GetTick();
   //User_Uart_Init(&huart6);
   
   /*// 初始化BMI088（0表示不使用在线标定，使用离线参数）
@@ -181,11 +216,12 @@ int main(void)
   M2006_SetControlMode(&motors[0], M2006_MODE_SPEED);
   M2006_SetControlMode(&motors[1], M2006_MODE_SPEED);
   M2006_SetControlMode(&motors[2], M2006_MODE_SPEED);
+  M2006_SetControlMode(&motors[3], M2006_MODE_SPEED);
   /*M2006_SetControlMode(&motors[3], M2006_MODE_SPEED);
   M2006_SetControlMode(&motors[4], M2006_MODE_SPEED);*/
-  M2006_SetSpeedTarget(&motors[0], dir[0] * 400.0f);
+  /*M2006_SetSpeedTarget(&motors[0], dir[0] * 400.0f);
   M2006_SetSpeedTarget(&motors[1], dir[1] * 4500.0f);
-  M2006_SetSpeedTarget(&motors[2], dir[2] * 4500.0f);
+  M2006_SetSpeedTarget(&motors[2], dir[2] * 4500.0f);*/
   /*M2006_SetSpeedTarget(&motors[3], dir[3] * 600.0f);
   M2006_SetSpeedTarget(&motors[4], dir[4] * 600.0f);*/
   /*M2006_SetPosTarget(&motors[0], dir[0] * 0.0f);
@@ -263,8 +299,27 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    M2006_UpdateAll(motors, 3);
-    
+    if (HAL_GetTick() - last >= 1)
+    {
+      last = HAL_GetTick();
+
+      // === 摇杆输入映射 ===
+      vx = mapf(rc.channels[1], 240, 1800, -8000, +8000);  // 前后（通道2）
+      vy = -mapf(rc.channels[0], 240, 1800, -8000, +8000);  // 左右（通道1）
+      wz = mapf(rc.channels[3], 240, 1800, +8000, -8000);  // 旋转（通道3)
+
+      // 死区处理
+      if (fabs(vx) < 200) vx = 0;
+      if (fabs(vy) < 200) vy = 0;
+      if (fabs(wz) < 200) wz = 0;
+
+      // === 综合运动控制 ===
+      Chassis_Control(vx, vy, wz);
+
+      // PID 更新并发送 CAN 帧
+      M2006_UpdateAll(motors, 4);
+    }
+
     /*// ===== 更新HSS示波器变量（根据模式） =====
     if (motors[0].mode == M2006_MODE_SPEED) {
       // 速度环模式
@@ -347,7 +402,7 @@ int main(void)
     }
     loop_counter++;*/
 
-    HAL_Delay(1);
+    //HAL_Delay(1);
     /*// 读取BMI088数据
     BMI088_Read(&BMI088);
     
