@@ -14,7 +14,7 @@
 #define M2006_SPEED_LPF_TAU_S     0.010f  // 10ms，对应截止频率约16Hz
 #define M2006_CURRENT_LPF_TAU_S   0.010f  // 10ms，对应截止频率约16Hz
 
-#define M2006_MAX_NUM 5
+#define M2006_MAX_NUM 3
 
 // 控制模式枚举
 typedef enum

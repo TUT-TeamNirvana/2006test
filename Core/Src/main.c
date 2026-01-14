@@ -57,8 +57,8 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-M2006_t motors[5];
-int8_t dir[5] = { +1, +1, +1, -1, -1};
+M2006_t motors[3];
+int8_t dir[3] = { +1, +1, +1};
 
 /*
 // HSS示波器变量 - 速度环模式
@@ -176,13 +176,13 @@ int main(void)
   M2006_SetControlMode(&motors[0], M2006_MODE_SPEED);
   M2006_SetControlMode(&motors[1], M2006_MODE_SPEED);
   M2006_SetControlMode(&motors[2], M2006_MODE_SPEED);
-  M2006_SetControlMode(&motors[3], M2006_MODE_SPEED);
-  M2006_SetControlMode(&motors[4], M2006_MODE_SPEED);
+  /*M2006_SetControlMode(&motors[3], M2006_MODE_SPEED);
+  M2006_SetControlMode(&motors[4], M2006_MODE_SPEED);*/
   M2006_SetSpeedTarget(&motors[0], dir[0] * 400.0f);
   M2006_SetSpeedTarget(&motors[1], dir[1] * 600.0f);
   M2006_SetSpeedTarget(&motors[2], dir[2] * 600.0f);
-  M2006_SetSpeedTarget(&motors[3], dir[3] * 600.0f);
-  M2006_SetSpeedTarget(&motors[4], dir[4] * 600.0f);
+  /*M2006_SetSpeedTarget(&motors[3], dir[3] * 600.0f);
+  M2006_SetSpeedTarget(&motors[4], dir[4] * 600.0f);*/
   /*M2006_SetPosTarget(&motors[0], dir[0] * 0.0f);
   M2006_SetPosTarget(&motors[1], dir[1] * 0.0f);*/
 
