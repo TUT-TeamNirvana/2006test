@@ -57,8 +57,8 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-M2006_t motors[2];
-int8_t dir[2] = { +1, -1 };
+M2006_t motors[4];
+int8_t dir[4] = { +1, +1, -1, -1 };
 
 // HSS示波器变量 - 速度环模式
 __attribute__((used)) volatile float hss_m1_speed_target = 0.0f;    // 速度目标 (RPM)
