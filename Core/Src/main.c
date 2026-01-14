@@ -58,7 +58,7 @@ void SystemClock_Config(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 M2006_t motors[3];
-int8_t dir[3] = { +1, +1, -1};
+int8_t dir[3] = { +1, -1, +1};
 
 /*
 // HSS示波器变量 - 速度环模式
