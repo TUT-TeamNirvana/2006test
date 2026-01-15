@@ -63,10 +63,10 @@ void SystemClock_Config(void);
 extern CAN_HandleTypeDef hcan1;
 extern uint16_t rc_ch[2]; // rc_ch[0]: X轴（左右转），rc_ch[1]: Y轴（前进）
 
-M2006_t motors[3];
-int8_t dir[3] = { +1, -1, +1}; // 按照电机安装方向
+M2006_t motors[4];
+int8_t dir[4] = { +1, +1, -1, -1}; // 按照电机安装方向
 
-/*// 映射函数
+// 映射函数
 float mapf(float x, float in_min, float in_max, float out_min, float out_max)
 {
   if (x < in_min) x = in_min;
@@ -88,7 +88,7 @@ void Chassis_Control(float vx, float vy, float wz)
   M2006_SetSpeedTarget(&motors[1], dir[1] * v2);
   M2006_SetSpeedTarget(&motors[2], dir[2] * v3);
   M2006_SetSpeedTarget(&motors[3], dir[3] * v4);
-}*/
+}
 /*
 // HSS示波器变量 - 速度环模式
 __attribute__((used)) volatile float hss_m1_speed_target = 0.0f;    // 速度目标 (RPM)
@@ -216,12 +216,12 @@ int main(void)
   M2006_SetControlMode(&motors[0], M2006_MODE_SPEED);
   M2006_SetControlMode(&motors[1], M2006_MODE_SPEED);
   M2006_SetControlMode(&motors[2], M2006_MODE_SPEED);
-  //M2006_SetControlMode(&motors[3], M2006_MODE_SPEED);
+  M2006_SetControlMode(&motors[3], M2006_MODE_SPEED);
   /*M2006_SetControlMode(&motors[3], M2006_MODE_SPEED);
   M2006_SetControlMode(&motors[4], M2006_MODE_SPEED);*/
-  M2006_SetSpeedTarget(&motors[0], dir[0] * 10800.0f);
-  M2006_SetSpeedTarget(&motors[1], dir[1] * 3000.0f);
-  M2006_SetSpeedTarget(&motors[2], dir[2] * 3000.0f);
+  /*M2006_SetSpeedTarget(&motors[0], dir[0] * 5400.0f);
+  M2006_SetSpeedTarget(&motors[1], dir[1] * 4000.0f);
+  M2006_SetSpeedTarget(&motors[2], dir[2] * 4000.0f);*/
   /*M2006_SetSpeedTarget(&motors[3], dir[3] * 600.0f);
   M2006_SetSpeedTarget(&motors[4], dir[4] * 600.0f);*/
   /*M2006_SetPosTarget(&motors[0], dir[0] * 0.0f);
@@ -294,16 +294,17 @@ int main(void)
   SEGGER_RTT_printf(0, "========================================\n");
   static uint32_t loop_counter = 0;*/
   uint8_t cmd[] = {0x55, 0x55, 0x08, 0x03, 0x01, 0xE8, 0x03, 0x01, 0x20, 0x03};
+  uint8_t cmd_two_servos_mid[] = {0x55, 0x55, 0x0B, 0x03, 0x02, 0xE8, 0x03, 0x01, 0xF4, 0x01, 0x02, 0xF4, 0x01};
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    //M2006_UpdateAll(motors, 3);
+    M2006_UpdateAll(motors, 4);
     HAL_UART_Transmit(&huart1, cmd, sizeof(cmd), 1000);
-    HAL_Delay(1);
-    /*if (HAL_GetTick() - last >= 1)
+    HAL_Delay(1000);
+    if (HAL_GetTick() - last >= 1)
     {
       last = HAL_GetTick();
 
@@ -322,7 +323,7 @@ int main(void)
 
       // PID 更新并发送 CAN 帧
       M2006_UpdateAll(motors, 4);
-    }*/
+    }
 
     /*// ===== 更新HSS示波器变量（根据模式） =====
     if (motors[0].mode == M2006_MODE_SPEED) {
