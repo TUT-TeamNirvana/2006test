@@ -190,8 +190,20 @@ int main(void)
   rc.channels[3] = 1025;
   M2006_InitAll(motors, &hcan1);
 
+  // 初始化用于舵机通信的用户串口结构（ring buffer）
+  // 使用非阻塞中断驱动发送（Usart_SendAll 已在 servo_motor_uart.c 中实现为中断驱动）
+  User_Uart_Init(&huart1);
+
   float vx = 0, wz = 0, vy = 0;
   uint32_t last = HAL_GetTick();
+
+  // Gripper (CH5) state variables
+  const uint16_t GRIPPER_CHANNEL_INDEX = 4; // CH5 -> rc.channels[4]
+  const uint16_t GRIPPER_THRESHOLD = 1400;
+  static uint8_t gripper_state = 0; // 0 = release, 1 = catch
+  static uint8_t last_button_on = 0;
+  static uint32_t gripper_last_toggle_ms = 0;
+  const uint32_t GRIPPER_TOGGLE_COOLDOWN_MS = 100; // ms
   //User_Uart_Init(&huart6);
   
   /*// 初始化BMI088（0表示不使用在线标定，使用离线参数）
@@ -304,8 +316,7 @@ int main(void)
   while (1)
   {
     //M2006_UpdateAll(motors, 4);
-    HAL_UART_Transmit(&huart1, cmd_catch, sizeof(cmd_catch), 100);
-    HAL_Delay(100);
+    // 非阻塞夹爪控制已移入 1ms 节拍内处理（写入环形缓冲并触发 Usart_SendAll）
     if (HAL_GetTick() - last >= 1)
     {
       last = HAL_GetTick();
@@ -319,6 +330,40 @@ int main(void)
       if (fabs(vx) < 200) vx = 0;
       if (fabs(vy) < 200) vy = 0;
       if (fabs(wz) < 200) wz = 0;
+
+      // ---------- Gripper toggle (CH5 non-blocking) ----------
+      {
+        uint16_t ch_val = rc.channels[GRIPPER_CHANNEL_INDEX]; // CH5
+        uint8_t button_on = (ch_val > GRIPPER_THRESHOLD) ? 1 : 0;
+
+        // 上升沿触发 toggle（防抖冷却）
+        if (button_on && !last_button_on) {
+          uint32_t now = HAL_GetTick();
+          if (now - gripper_last_toggle_ms >= GRIPPER_TOGGLE_COOLDOWN_MS) {
+            // 选择要发送的帧（当前状态为 release -> 发送 catch）
+            uint8_t *frame = (gripper_state == 0) ? cmd_catch : cmd_realse;
+            uint16_t frame_len = (gripper_state == 0) ? sizeof(cmd_catch) : sizeof(cmd_realse);
+
+            // 检查环形缓冲剩余空间，避免覆盖/丢失
+            if (RingBuffer_GetByteFree(FSUS_usart1.sendBuf) >= frame_len) {
+              for (uint16_t i = 0; i < frame_len; ++i) {
+                RingBuffer_Push(FSUS_usart1.sendBuf, frame[i]);
+              }
+              // 触发非阻塞发送（若 TX 空闲会马上启动，若忙则由 Tx 回调接力）
+              Usart_SendAll(&FSUS_usart1);
+            } else {
+              // 缓冲已满，记录并丢弃此命令（不要阻塞主循环）
+              printf("[gripper] sendBuf full, drop cmd\r\n");
+            }
+
+            // 切换状态并设置冷却时间
+            gripper_state = (gripper_state == 0) ? 1 : 0;
+            gripper_last_toggle_ms = now;
+          }
+        }
+        last_button_on = button_on;
+      }
+      // ---------- Gripper end ----------
 
       // === 综合运动控制 ===
       Chassis_Control(vx, vy, wz);
