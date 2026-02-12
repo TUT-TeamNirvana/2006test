@@ -194,6 +194,7 @@ int main(void)
   MecanumAppConfig_t mecanum_config = {
       .motors = motors,
       .motor_directions = dir,
+      .gripper_uart = &huart1,  // 麦轮夹爪串口（非FSUS舵机）
       .deadzone = 200.0f
   };
   MecanumApp_Init(&mecanum_config);

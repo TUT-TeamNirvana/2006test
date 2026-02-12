@@ -34,8 +34,9 @@ void RC_GetChassisControl(SBUS_Data_t *sbus_data, float *vx, float *vy, float *w
 
 /**
  * @brief 初始化夹爪控制模块（麦轮项目专用）
+ * @param huart 麦轮夹爪串口句柄（注意：不是轮腿的FSUS舵机串口）
  */
-void RC_GripperInit(void);
+void RC_GripperInit(UART_HandleTypeDef *huart);
 
 /**
  * @brief 夹爪控制处理（非阻塞）

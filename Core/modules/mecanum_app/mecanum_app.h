@@ -18,6 +18,7 @@
 typedef struct {
     M2006_t *motors;              // 电机数组指针（至少4个）
     int8_t *motor_directions;     // 电机方向数组（4个元素）
+    UART_HandleTypeDef *gripper_uart;  // 麦轮夹爪串口句柄（非FSUS舵机）
     float deadzone;               // 遥控器死区阈值
 } MecanumAppConfig_t;
 

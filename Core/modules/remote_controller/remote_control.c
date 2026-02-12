@@ -9,6 +9,14 @@
 #include "servo_motor_uart.h"
 #include "ring_buffer.h"
 
+// 麦轮夹爪串口缓冲区大小定义
+#ifndef USART_RECV_BUF_SIZE
+#define USART_RECV_BUF_SIZE 600
+#endif
+#ifndef USART_SEND_BUF_SIZE
+#define USART_SEND_BUF_SIZE 600
+#endif
+
 // 夹爪控制相关私有变量
 static const uint16_t GRIPPER_CHANNEL_INDEX = 4; // CH5 -> rc.channels[4]
 static const uint16_t GRIPPER_THRESHOLD = 1400;
@@ -21,8 +29,13 @@ static const uint32_t GRIPPER_TOGGLE_COOLDOWN_MS = 100; // ms
 static uint8_t cmd_catch[] = {0x55, 0x55, 0x0B, 0x03, 0x02, 0x64, 0x00, 0x01, 0x90, 0x01, 0x02, 0x58, 0x02};
 static uint8_t cmd_realse[] = {0x55, 0x55, 0x0B, 0x03, 0x02, 0x64, 0x00, 0x01, 0x58, 0x02, 0x02, 0x90, 0x01};
 
-// 外部变量声明（麦轮项目的舵机串口，非FSUS）
-extern Usart_COB FSUS_usart1;
+// 麦轮夹爪专用串口变量（注意：这不是轮腿项目的FSUS舵机！）
+// 这个变量复用了servo_motor_uart的结构，但控制的是麦轮项目的非FSUS夹爪
+static uint8_t mecanum_gripper_send_buf[USART_SEND_BUF_SIZE + 1];
+static uint8_t mecanum_gripper_recv_buf[USART_RECV_BUF_SIZE + 1];
+static RingBufferTypeDef mecanum_gripper_send_ring;
+static RingBufferTypeDef mecanum_gripper_recv_ring;
+static Usart_DataTypeDef Mecanum_Gripper_usart;  // 麦轮夹爪串口（非FSUS）
 
 /**
  * @brief 映射函数 - 将输入值从一个范围映射到另一个范围
@@ -68,12 +81,20 @@ void RC_GetChassisControl(SBUS_Data_t *sbus_data, float *vx, float *vy, float *w
 
 /**
  * @brief 初始化夹爪控制模块（麦轮项目专用）
+ * @param huart 麦轮夹爪串口句柄（注意：不是轮腿的FSUS舵机串口）
  */
-void RC_GripperInit(void)
+void RC_GripperInit(UART_HandleTypeDef *huart)
 {
     gripper_state = 0;
     last_button_on = 0;
     gripper_last_toggle_ms = 0;
+    
+    // 初始化麦轮夹爪专用串口（复用servo_motor_uart的结构）
+    RingBuffer_Init(&mecanum_gripper_send_ring, USART_SEND_BUF_SIZE, mecanum_gripper_send_buf);
+    RingBuffer_Init(&mecanum_gripper_recv_ring, USART_RECV_BUF_SIZE, mecanum_gripper_recv_buf);
+    Mecanum_Gripper_usart.sendBuf = &mecanum_gripper_send_ring;
+    Mecanum_Gripper_usart.recvBuf = &mecanum_gripper_recv_ring;
+    Mecanum_Gripper_usart.huartX = huart;
 }
 
 /**
@@ -103,14 +124,14 @@ void RC_ProcessGripperControl(SBUS_Data_t *sbus_data)
             uint16_t frame_len = (gripper_state == 0) ? sizeof(cmd_catch) : sizeof(cmd_realse);
 
             // 检查环形缓冲剩余空间，避免覆盖/丢失
-            if (RingBuffer_GetByteFree(FSUS_usart1.sendBuf) >= frame_len) 
+            if (RingBuffer_GetByteFree(Mecanum_Gripper_usart.sendBuf) >= frame_len) 
             {
                 for (uint16_t i = 0; i < frame_len; ++i) 
                 {
-                    RingBuffer_Push(FSUS_usart1.sendBuf, frame[i]);
+                    RingBuffer_Push(Mecanum_Gripper_usart.sendBuf, frame[i]);
                 }
                 // 触发非阻塞发送（若 TX 空闲会马上启动，若忙则由 Tx 回调接力）
-                Usart_SendAll(&FSUS_usart1);
+                Usart_SendAll(&Mecanum_Gripper_usart);
             }
 
             // 切换状态并设置冷却时间

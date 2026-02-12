@@ -36,8 +36,11 @@ void MecanumApp_Init(MecanumAppConfig_t *config)
     // 初始化麦克纳姆轮底盘
     Mecanum_Chassis_Init(app_config.motors, app_config.motor_directions);
     
-    // 初始化夹爪控制
-    RC_GripperInit();
+    // 初始化夹爪控制（如果提供了串口句柄）
+    if (app_config.gripper_uart != NULL)
+    {
+        RC_GripperInit(app_config.gripper_uart);
+    }
     
     is_initialized = 1;
 }
@@ -59,8 +62,11 @@ void MecanumApp_Update(SBUS_Data_t *sbus_data)
     // 获取遥控器底盘控制值（包含死区处理）
     RC_GetChassisControl(sbus_data, &vx, &vy, &wz, app_config.deadzone);
     
-    // 处理夹爪控制
-    RC_ProcessGripperControl(sbus_data);
+    // 处理夹爪控制（如果初始化了夹爪）
+    if (app_config.gripper_uart != NULL)
+    {
+        RC_ProcessGripperControl(sbus_data);
+    }
     
     // 麦克纳姆轮底盘运动控制
     Mecanum_Chassis_Control(vx, vy, wz);
