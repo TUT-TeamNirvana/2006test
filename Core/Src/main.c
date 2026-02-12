@@ -168,23 +168,20 @@ int main(void)
   MX_USART6_UART_Init();
   MX_USART1_UART_Init();
   MX_SPI1_Init();
-#ifdef USE_MECANUM_MODE
   MX_USART3_UART_Init();
   MX_USB_DEVICE_Init();
+  SBUS_Init();
   /* USER CODE BEGIN 2 */
-#endif
 
 
 #ifdef USE_WHEELLEG_MODE
   // ========== 轮腿项目初始化 ==========
   M2006_InitAll(motors, &hcan1);
-  uint32_t last = HAL_GetTick();
   User_Uart_Init(&huart6);
 #endif
 
 #ifdef USE_MECANUM_MODE
   // ========== 麦轮项目初始化 ==========
-  SBUS_Init();
   rc.channels[0] = 1025;
   rc.channels[1] = 1025;
   rc.channels[2] = 240;
@@ -230,8 +227,8 @@ int main(void)
   
   demo_motor_init_lowpos();
   HAL_Delay(1000);
-  M2006_SetControlMode(&motors[0], M2006_MODE_CASCADE);
-  M2006_SetControlMode(&motors[1], M2006_MODE_CASCADE);
+  M2006_SetControlMode(&motors[0], M2006_MODE_SPEED);
+  M2006_SetControlMode(&motors[1], M2006_MODE_SPEED);
   M2006_SetSpeedTarget(&motors[0], dir[0] * 3000.0f);
   M2006_SetSpeedTarget(&motors[1], dir[1] * 3000.0f);
   M2006_SetPosTarget(&motors[0], dir[0] * 0.0f);
