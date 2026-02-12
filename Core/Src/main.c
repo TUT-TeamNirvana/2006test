@@ -63,9 +63,9 @@ void SystemClock_Config(void);
 extern CAN_HandleTypeDef hcan1;
 extern uint16_t rc_ch[2]; // rc_ch[0]: X轴（左右转），rc_ch[1]: Y轴（前进）
 
-M2006_t motors[4];
-int8_t dir[4] = { +1, +1, -1, -1}; // 按照电机安装方向
-/*
+M2006_t motors[2];
+int8_t dir[2] = { +1, -1 }; // 按照电机安装方向
+
 // HSS示波器变量 - 速度环模式
 __attribute__((used)) volatile float hss_m1_speed_target = 0.0f;    // 速度目标 (RPM)
 __attribute__((used)) volatile float hss_m1_speed_actual = 0.0f;    // 速度实际 (RPM)
@@ -84,8 +84,8 @@ static char uart_buffer[256];
 /**
  * @brief 通过UART发送BMI088数据
  * @param huart UART句柄
- #1#
-void Send_BMI088_Data(UART_HandleTypeDef *huart)
+ */
+/*void Send_BMI088_Data(UART_HandleTypeDef *huart)
 {
     // 格式化输出BMI088数据
     int len = sprintf(uart_buffer,
@@ -101,14 +101,14 @@ void Send_BMI088_Data(UART_HandleTypeDef *huart)
     
     // 通过UART发送
     HAL_UART_Transmit(huart, (uint8_t*)uart_buffer, len, 1000);
-}
+}*/
 
 /**
  * @brief 将浮点数拆分为整数部分和两位小数部分（用于不支持%f的printf）
  * @param value 输入的浮点数
  * @param int_part 输出的整数部分指针
  * @param frac_part 输出的小数部分指针（总为正数，范围0-99）
- #1#
+ */
 static void float_to_parts(float value, int32_t *int_part, int32_t *frac_part) {
   // 1. 将浮点数放大100倍并转换为整数（实现四舍五入）
   int32_t scaled = (int32_t)(value * 100.0f + (value < 0 ? -0.5f : 0.5f));
@@ -117,7 +117,6 @@ static void float_to_parts(float value, int32_t *int_part, int32_t *frac_part) {
   *int_part = scaled / 100;
   *frac_part = (scaled < 0 ? -scaled : scaled) % 100; // 小数部分始终取正
 }
-*/
 
 /* USER CODE END 0 */
 
@@ -160,25 +159,16 @@ int main(void)
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
   SBUS_Init();
-  rc.channels[0] = 1025;
-  rc.channels[1] = 1025;
-  rc.channels[2] = 240;
-  rc.channels[3] = 1025;
   M2006_InitAll(motors, &hcan1);
-
-  // 初始化用于舵机通信的用户串口结构（ring buffer）
-  // 使用非阻塞中断驱动发送（Usart_SendAll 已在 servo_motor_uart.c 中实现为中断驱动）
   User_Uart_Init(&huart1);
-
   // 初始化麦克纳姆轮底盘
-  Mecanum_Chassis_Init(motors, dir);
-  
+  //Mecanum_Chassis_Init(motors, dir);
   // 初始化夹爪控制模块
-  RC_GripperInit();
+  //RC_GripperInit();
 
-  float vx = 0, wz = 0, vy = 0;
+  //float vx = 0, wz = 0, vy = 0;
   uint32_t last = HAL_GetTick();
-  //User_Uart_Init(&huart6);
+  User_Uart_Init(&huart6);
   
   /*// 初始化BMI088（0表示不使用在线标定，使用离线参数）
   uint8_t bmi088_error = BMI088Init(&hspi1, 0);
@@ -197,23 +187,16 @@ int main(void)
   
   HAL_Delay(500);  // 等待一段时间让传感器稳定
   
-  /*demo_motor_init_lowpos();*/
+  demo_motor_init_lowpos();
   HAL_Delay(1000);
   M2006_SetControlMode(&motors[0], M2006_MODE_SPEED);
   M2006_SetControlMode(&motors[1], M2006_MODE_SPEED);
-  M2006_SetControlMode(&motors[2], M2006_MODE_SPEED);
-  M2006_SetControlMode(&motors[3], M2006_MODE_SPEED);
-  /*M2006_SetControlMode(&motors[3], M2006_MODE_SPEED);
-  M2006_SetControlMode(&motors[4], M2006_MODE_SPEED);*/
-  /*M2006_SetSpeedTarget(&motors[0], dir[0] * 5400.0f);
-  M2006_SetSpeedTarget(&motors[1], dir[1] * 4000.0f);
-  M2006_SetSpeedTarget(&motors[2], dir[2] * 4000.0f);*/
-  /*M2006_SetSpeedTarget(&motors[3], dir[3] * 600.0f);
-  M2006_SetSpeedTarget(&motors[4], dir[4] * 600.0f);*/
-  /*M2006_SetPosTarget(&motors[0], dir[0] * 0.0f);
-  M2006_SetPosTarget(&motors[1], dir[1] * 0.0f);*/
+  M2006_SetSpeedTarget(&motors[0], dir[0] * 3000.0f);
+  M2006_SetSpeedTarget(&motors[1], dir[1] * 3000.0f);
+  M2006_SetPosTarget(&motors[0], dir[0] * 0.0f);
+  M2006_SetPosTarget(&motors[1], dir[1] * 0.0f);
 
-  /*HAL_Delay(5000);
+  HAL_Delay(5000);
   
   // ===== PID参数打印（支持双模式）=====
   SEGGER_RTT_printf(0, "\n========================================\n");
@@ -279,14 +262,13 @@ int main(void)
   
   SEGGER_RTT_printf(0, "========================================\n");
   static uint32_t loop_counter = 0;
-  loop_counter++;*/
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    //M2006_UpdateAll(motors, 4);
+    M2006_UpdateAll(motors, 2);
     // 非阻塞夹爪控制已移入 1ms 节拍内处理（写入环形缓冲并触发 Usart_SendAll）
     if (HAL_GetTick() - last >= 1)
     {
@@ -305,7 +287,7 @@ int main(void)
       M2006_UpdateAll(motors, 4);
     }
 
-    /*// ===== 更新HSS示波器变量（根据模式） =====
+    // ===== 更新HSS示波器变量（根据模式） =====
     if (motors[0].mode == M2006_MODE_SPEED) {
       // 速度环模式
       hss_m1_speed_target = motors[0].target;
@@ -325,11 +307,11 @@ int main(void)
       hss_m1_current_out = motors[0].controller.inner_loop.output;
     }
 
-    /#1#/ ===== 每100次循环打印一次反馈频率（每100ms） =====
+    /*// ===== 每100次循环打印一次反馈频率（每100ms） =====
     if (loop_counter % 100 == 0) {
       uint32_t feedback_freq = M2006_GetFeedbackFrequency(0);
       SEGGER_RTT_printf(0, "[Feedback Freq] Motor 1 CAN Feedback: %lu Hz\n", feedback_freq);
-    }#1#
+    }*/
 
     // ===== 每10次循环打印一行紧凑数据 =====
     if (loop_counter % 10 == 0) {
@@ -385,9 +367,9 @@ int main(void)
         );
       }
     }
-    loop_counter++;*/
+    loop_counter++;
 
-    //HAL_Delay(1);
+    HAL_Delay(1);
     /*// 读取BMI088数据
     BMI088_Read(&BMI088);
     
