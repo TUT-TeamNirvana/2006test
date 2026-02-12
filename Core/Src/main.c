@@ -316,8 +316,7 @@ int main(void)
 #ifdef USE_WHEELLEG_MODE
     // ========== 轮腿项目主循环 ==========
     M2006_UpdateAll(motors, 2);
-    // 在这里添加轮腿项目的其他控制逻辑
-    // ...
+
 #endif
 
 #ifdef USE_MECANUM_MODE
