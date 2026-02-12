@@ -1,6 +1,7 @@
 //
 // Created by AI Assistant
 // 遥控器输入处理模块
+// 注意：此模块专用于麦轮项目，不适用于轮腿项目
 //
 
 #ifndef REMOTE_CONTROL_H
@@ -32,7 +33,7 @@ float RC_MapValue(float x, float in_min, float in_max, float out_min, float out_
 void RC_GetChassisControl(SBUS_Data_t *sbus_data, float *vx, float *vy, float *wz, float deadzone);
 
 /**
- * @brief 初始化夹爪控制模块
+ * @brief 初始化夹爪控制模块（麦轮项目专用）
  */
 void RC_GripperInit(void);
 
@@ -40,6 +41,7 @@ void RC_GripperInit(void);
  * @brief 夹爪控制处理（非阻塞）
  * @param sbus_data SBUS数据结构指针
  * @note 通过CH5通道控制夹爪，使用环形缓冲区非阻塞发送
+ * @warning 此函数专用于麦轮项目的非FSUS舵机，不适用于轮腿项目
  */
 void RC_ProcessGripperControl(SBUS_Data_t *sbus_data);
 

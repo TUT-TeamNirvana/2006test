@@ -39,6 +39,10 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
+// 项目模式选择：取消注释其中一个宏定义
+// #define USE_MECANUM_MODE    // 麦轮项目模式
+#define USE_WHEELLEG_MODE   // 轮腿项目模式（默认）
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -61,10 +65,19 @@ void SystemClock_Config(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 extern CAN_HandleTypeDef hcan1;
-extern uint16_t rc_ch[2]; // rc_ch[0]: X轴（左右转），rc_ch[1]: Y轴（前进）
 
+#ifdef USE_WHEELLEG_MODE
+// ========== 轮腿项目配置 ==========
 M2006_t motors[2];
-int8_t dir[2] = { +1, -1 }; // 按照电机安装方向
+int8_t dir[2] = { +1, -1 };
+#endif
+
+#ifdef USE_MECANUM_MODE
+// ========== 麦轮项目配置 ==========
+extern SBUS_Data_t rc;  // SBUS遥控器数据（由sbus.c定义）
+M2006_t motors[4];
+int8_t dir[4] = { +1, +1, -1, -1 };
+#endif
 
 // HSS示波器变量 - 速度环模式
 __attribute__((used)) volatile float hss_m1_speed_target = 0.0f;    // 速度目标 (RPM)
@@ -158,17 +171,40 @@ int main(void)
   MX_USART3_UART_Init();
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
-  SBUS_Init();
+
+#ifdef USE_WHEELLEG_MODE
+  // ========== 轮腿项目初始化 ==========
   M2006_InitAll(motors, &hcan1);
   User_Uart_Init(&huart1);
-  // 初始化麦克纳姆轮底盘
-  //Mecanum_Chassis_Init(motors, dir);
-  // 初始化夹爪控制模块
-  //RC_GripperInit();
-
-  //float vx = 0, wz = 0, vy = 0;
   uint32_t last = HAL_GetTick();
   User_Uart_Init(&huart6);
+#endif
+
+#ifdef USE_MECANUM_MODE
+  // ========== 麦轮项目初始化 ==========
+  SBUS_Init();
+  rc.channels[0] = 1025;
+  rc.channels[1] = 1025;
+  rc.channels[2] = 240;
+  rc.channels[3] = 1025;
+  M2006_InitAll(motors, &hcan1);
+  User_Uart_Init(&huart1);
+  
+  // 配置麦轮应用
+  MecanumAppConfig_t mecanum_config = {
+      .motors = motors,
+      .motor_directions = dir,
+      .deadzone = 200.0f
+  };
+  MecanumApp_Init(&mecanum_config);
+  
+  uint32_t last = HAL_GetTick();
+  
+  // 设置麦轮电机为速度控制模式
+  for (int i = 0; i < 4; i++) {
+      M2006_SetControlMode(&motors[i], M2006_MODE_SPEED);
+  }
+#endif
   
   /*// 初始化BMI088（0表示不使用在线标定，使用离线参数）
   uint8_t bmi088_error = BMI088Init(&hspi1, 0);
@@ -185,7 +221,9 @@ int main(void)
     HAL_UART_Transmit(&huart1, (uint8_t*)"BMI088 Init Success!\r\n", 22, 1000);
   }*/
   
-  HAL_Delay(500);  // 等待一段时间让传感器稳定
+#ifdef USE_WHEELLEG_MODE
+  // ========== 轮腿项目专用设置 ==========
+  HAL_Delay(500);
   
   demo_motor_init_lowpos();
   HAL_Delay(1000);
@@ -197,6 +235,12 @@ int main(void)
   M2006_SetPosTarget(&motors[1], dir[1] * 0.0f);
 
   HAL_Delay(5000);
+#endif
+
+#ifdef USE_MECANUM_MODE
+  // ========== 麦轮项目专用设置 ==========
+  HAL_Delay(500);
+#endif
   
   // ===== PID参数打印（支持双模式）=====
   SEGGER_RTT_printf(0, "\n========================================\n");
@@ -268,24 +312,23 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+#ifdef USE_WHEELLEG_MODE
+    // ========== 轮腿项目主循环 ==========
     M2006_UpdateAll(motors, 2);
-    // 非阻塞夹爪控制已移入 1ms 节拍内处理（写入环形缓冲并触发 Usart_SendAll）
+    // 在这里添加轮腿项目的其他控制逻辑
+    // ...
+#endif
+
+#ifdef USE_MECANUM_MODE
+    // ========== 麦轮项目主循环 ==========
     if (HAL_GetTick() - last >= 1)
     {
       last = HAL_GetTick();
-
-      // === 摇杆输入映射（使用封装的遥控器API）===
-      RC_GetChassisControl(&rc, &vx, &vy, &wz, 200.0f);
-
-      // === 夹爪控制（使用封装的遥控器API）===
-      RC_ProcessGripperControl(&rc);
-
-      // === 综合运动控制（使用封装的底盘API）===
-      Mecanum_Chassis_Control(vx, vy, wz);
-
-      // PID 更新并发送 CAN 帧
-      M2006_UpdateAll(motors, 4);
+      
+      // 麦轮应用统一更新（包含遥控器输入、底盘控制、夹爪控制、电机PID）
+      MecanumApp_Update(&rc);
     }
+#endif
 
     // ===== 更新HSS示波器变量（根据模式） =====
     if (motors[0].mode == M2006_MODE_SPEED) {

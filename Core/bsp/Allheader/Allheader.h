@@ -12,7 +12,10 @@
 #include "SEGGER_RTT.h"
 #include "BMI088driver.h"
 #include "bsp_dwt.h"
+
+// 麦轮项目专用模块（如果不使用麦轮项目，可注释掉以下三行）
 #include "mecanum_chassis.h"
 #include "remote_control.h"
+#include "mecanum_app.h"
 
 #endif //ALLHEADER_H

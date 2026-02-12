@@ -1,6 +1,7 @@
 //
 // Created by AI Assistant
 // 遥控器控制模块 - 处理SBUS遥控器输入和映射
+// 注意：此模块专用于麦轮项目，不适用于轮腿项目
 //
 
 #include "remote_control.h"
@@ -16,11 +17,11 @@ static uint8_t last_button_on = 0;
 static uint32_t gripper_last_toggle_ms = 0;
 static const uint32_t GRIPPER_TOGGLE_COOLDOWN_MS = 100; // ms
 
-// 夹爪控制命令（从main.c中复制）
+// 夹爪控制命令（麦轮项目专用，非FSUS舵机）
 static uint8_t cmd_catch[] = {0x55, 0x55, 0x0B, 0x03, 0x02, 0x64, 0x00, 0x01, 0x90, 0x01, 0x02, 0x58, 0x02};
 static uint8_t cmd_realse[] = {0x55, 0x55, 0x0B, 0x03, 0x02, 0x64, 0x00, 0x01, 0x58, 0x02, 0x02, 0x90, 0x01};
 
-// 外部变量声明
+// 外部变量声明（麦轮项目的舵机串口，非FSUS）
 extern Usart_COB FSUS_usart1;
 
 /**
@@ -66,7 +67,7 @@ void RC_GetChassisControl(SBUS_Data_t *sbus_data, float *vx, float *vy, float *w
 }
 
 /**
- * @brief 初始化夹爪控制模块
+ * @brief 初始化夹爪控制模块（麦轮项目专用）
  */
 void RC_GripperInit(void)
 {
@@ -79,6 +80,7 @@ void RC_GripperInit(void)
  * @brief 夹爪控制处理（非阻塞）
  * @param sbus_data SBUS数据结构指针
  * @note 通过CH5通道控制夹爪，使用环形缓冲区非阻塞发送
+ * @warning 此函数专用于麦轮项目的非FSUS舵机，不适用于轮腿项目
  */
 void RC_ProcessGripperControl(SBUS_Data_t *sbus_data)
 {

@@ -54,6 +54,8 @@ add_executable(${CMAKE_PROJECT_NAME}
         Core/modules/mecanum_chassis/mecanum_chassis.h
         Core/modules/remote_controller/remote_control.c
         Core/modules/remote_controller/remote_control.h
+        Core/modules/mecanum_app/mecanum_app.c
+        Core/modules/mecanum_app/mecanum_app.h
         Middlewares/Third_Party/SEGGER/Config/SEGGER_RTT_Conf.h
         Middlewares/Third_Party/SEGGER/RTT/SEGGER_RTT.h
         Middlewares/Third_Party/SEGGER/RTT/SEGGER_RTT_printf.c
@@ -101,6 +103,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         Core/modules/algorithm
         Core/modules/mecanum_chassis
         Core/modules/remote_controller
+        Core/modules/mecanum_app
         Middlewares/Third_Party/SEGGER/RTT
         Middlewares/Third_Party/SEGGER/Config
 )
