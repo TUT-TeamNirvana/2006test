@@ -12,5 +12,7 @@
 #include "SEGGER_RTT.h"
 #include "BMI088driver.h"
 #include "bsp_dwt.h"
+#include "mecanum_chassis.h"
+#include "remote_control.h"
 
 #endif //ALLHEADER_H
