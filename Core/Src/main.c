@@ -19,12 +19,12 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "can.h"
+#include "crc.h"
 #include "dma.h"
 #include "spi.h"
 #include "usart.h"
 #include "usb_device.h"
 #include "gpio.h"
-#include "sbus.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -170,7 +170,7 @@ int main(void)
   MX_SPI1_Init();
   MX_USART3_UART_Init();
   MX_USB_DEVICE_Init();
-  SBUS_Init();
+  MX_CRC_Init();
   /* USER CODE BEGIN 2 */
 
 
