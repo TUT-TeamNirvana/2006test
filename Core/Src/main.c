@@ -68,8 +68,8 @@ extern CAN_HandleTypeDef hcan1;
 
 #ifdef USE_WHEELLEG_MODE
 // ========== 轮腿项目配置 ==========
-M2006_t motors[4];
-int8_t dir[4] = { +1, +1, +1, +1 };
+M2006_t motors[5];
+int8_t dir[5] = { +1, +1, +1, +1, +1};
 #endif
 
 #ifdef USE_MECANUM_MODE
@@ -171,6 +171,7 @@ int main(void)
   MX_USART3_UART_Init();
   MX_USB_DEVICE_Init();
   MX_CRC_Init();
+  MX_CAN2_Init();
   /* USER CODE BEGIN 2 */
 
 
@@ -229,12 +230,14 @@ int main(void)
   HAL_Delay(1000);
   M2006_SetControlMode(&motors[0], M2006_MODE_SPEED);
   M2006_SetControlMode(&motors[1], M2006_MODE_SPEED);
+  M2006_SetControlMode(&motors[2], M2006_MODE_SPEED);
   M2006_SetControlMode(&motors[3], M2006_MODE_SPEED);
   M2006_SetControlMode(&motors[4], M2006_MODE_SPEED);
   M2006_SetSpeedTarget(&motors[0], dir[0] * 1500.0f);
   M2006_SetSpeedTarget(&motors[1], dir[1] * 1500.0f);
+  M2006_SetSpeedTarget(&motors[2], dir[2] * 1500.0f);
   M2006_SetSpeedTarget(&motors[3], dir[3] * 1500.0f);
-  M2006_SetSpeedTarget(&motors[4], dir[4] * 1500.0f);
+  M2006_SetSpeedTarget(&motors[4], dir[4] * 800.0f);
   M2006_SetPosTarget(&motors[0], dir[0] * 0.0f);
   M2006_SetPosTarget(&motors[1], dir[1] * 0.0f);
 
@@ -318,7 +321,7 @@ int main(void)
   {
 #ifdef USE_WHEELLEG_MODE
     // ========== 轮腿项目主循环 ==========
-    M2006_UpdateAll(motors, 2);
+    M2006_UpdateAll(motors, 5);
 
 #endif
 
