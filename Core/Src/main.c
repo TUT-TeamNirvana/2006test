@@ -179,8 +179,9 @@ int main(void)
 
 #ifdef USE_WHEELLEG_MODE
   // ========== 轮腿项目初始化 ==========
-  M2006_InitAll(motors, &hcan1);
-  User_Uart_Init(&huart6);
+  for(int i=0;i<5;i++)
+    M2006_InitSingle(&motors[i], &hcan1, i, 5.0f, 0.0f, 0.1f, 2.5f, 0.011f, 0.0f, 5000.0f, 10000.0f);
+  GM6020_InitSingle(&gm_motors[2], &hcan1, 2, 5.0f, 0.0f, 0.1f, 2.5f, 0.011f, 0.0f, 300.0f, 30000.0f);
 #endif
 
 #ifdef USE_MECANUM_MODE
@@ -325,7 +326,7 @@ int main(void)
   {
 #ifdef USE_WHEELLEG_MODE
     // ========== 轮腿项目主循环 ==========
-    M2006_UpdateAll(motors, 8);
+    M2006_UpdateAll(motors, 5);
     GM6020_UpdateAll(gm_motors, 8);
 
 #endif
