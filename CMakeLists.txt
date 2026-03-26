@@ -35,6 +35,8 @@ enable_language(C ASM)
 add_executable(${CMAKE_PROJECT_NAME}
         Core/modules/motor/m2006motor/m2006_motor.c
         Core/modules/motor/m2006motor/m2006_motor.h
+        Core/modules/motor/gm6020motor/gm6020_motor.c
+        Core/modules/motor/gm6020motor/gm6020_motor.h
         Core/bsp/can/bsp_can.h
         Core/bsp/can/bsp_can.c
         Core/bsp/Allheader/Allheader.h
@@ -94,6 +96,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         Core/bsp/can
         Core/modules/pid
         Core/modules/motor/m2006motor
+        Core/modules/motor/gm6020motor
         Core/modules/motor/servo_motor
         Core/bsp/Allheader
         Core/bsp/dwt

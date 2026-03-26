@@ -68,15 +68,17 @@ extern CAN_HandleTypeDef hcan1;
 
 #ifdef USE_WHEELLEG_MODE
 // ========== 轮腿项目配置 ==========
-M2006_t motors[5];
-int8_t dir[5] = { +1, +1, +1, +1, +1};
+M2006_t motors[M2006_MAX_NUM];
+int8_t m_dir[M2006_MAX_NUM] = { +1, +1, +1, +1, +1, +1, +1, +1};
+GM6020_t gm_motors[GM6020_MAX_NUM];
+int8_t gm_dir[GM6020_MAX_NUM] = { +1, +1, +1, +1, +1, +1, +1, +1};
 #endif
 
 #ifdef USE_MECANUM_MODE
 // ========== 麦轮项目配置 ==========
 extern SBUS_Data_t rc;  // SBUS遥控器数据（由sbus.c定义）
-M2006_t motors[4];
-int8_t dir[4] = { +1, +1, -1, -1 };
+M2006_t motors[M2006_MAX_NUM];
+int8_t dir[M2006_MAX_NUM] = { +1, +1, -1, -1, +1, +1, +1, +1 };
 #endif
 
 // HSS示波器变量 - 速度环模式
@@ -233,13 +235,15 @@ int main(void)
   M2006_SetControlMode(&motors[2], M2006_MODE_SPEED);
   M2006_SetControlMode(&motors[3], M2006_MODE_SPEED);
   M2006_SetControlMode(&motors[4], M2006_MODE_SPEED);
-  M2006_SetSpeedTarget(&motors[0], dir[0] * 1500.0f);
-  M2006_SetSpeedTarget(&motors[1], dir[1] * 1500.0f);
-  M2006_SetSpeedTarget(&motors[2], dir[2] * 1500.0f);
-  M2006_SetSpeedTarget(&motors[3], dir[3] * 1500.0f);
-  M2006_SetSpeedTarget(&motors[4], dir[4] * 800.0f);
-  M2006_SetPosTarget(&motors[0], dir[0] * 0.0f);
-  M2006_SetPosTarget(&motors[1], dir[1] * 0.0f);
+  GM6020_SetControlMode(&gm_motors[3], GM6020_MODE_SPEED);
+  M2006_SetSpeedTarget(&motors[0], m_dir[0] * 1500.0f);
+  M2006_SetSpeedTarget(&motors[1], m_dir[1] * 1500.0f);
+  M2006_SetSpeedTarget(&motors[2], m_dir[2] * 500.0f);
+  M2006_SetSpeedTarget(&motors[3], m_dir[3] * 1500.0f);
+  M2006_SetSpeedTarget(&motors[4], m_dir[4] * 800.0f);
+  GM6020_SetSpeedTarget(&gm_motors[3], gm_dir[3] * 300.0f);
+  M2006_SetPosTarget(&motors[0], m_dir[0] * 0.0f);
+  M2006_SetPosTarget(&motors[1], m_dir[1] * 0.0f);
 
   HAL_Delay(500);
 #endif
@@ -321,7 +325,8 @@ int main(void)
   {
 #ifdef USE_WHEELLEG_MODE
     // ========== 轮腿项目主循环 ==========
-    M2006_UpdateAll(motors, 5);
+    M2006_UpdateAll(motors, 8);
+    GM6020_UpdateAll(gm_motors, 8);
 
 #endif
 
