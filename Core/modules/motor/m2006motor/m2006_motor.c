@@ -25,7 +25,7 @@ void M2006_InitSingle(M2006_t *motor, CAN_HandleTypeDef *hcan, uint8_t motor_id,
 
     CAN_Init_Config_s config = {
         .can_handle = hcan,
-        .tx_id = 0x200,
+        .tx_id = (motor_id < 4) ? 0x200 : 0x1FF,
         .rx_id = rx_id,
         .can_module_callback = M2006_Callback,
         .id = motor
@@ -124,10 +124,10 @@ void M2006_UpdateAll(M2006_t *motors, uint8_t motor_count)
         return;  // 电机未初始化，直接返回
     }
     
-    int16_t currents[4] = {0};
+    int16_t currents[8] = {0};
 
     // 计算每个电机的控制输出
-    for (int i = 0; i < motor_count && i < 4; i++)
+    for (int i = 0; i < motor_count && i < 8; i++)
     {
         // 禁用中断，原子读取反馈数据
         __disable_irq();
@@ -148,17 +148,33 @@ void M2006_UpdateAll(M2006_t *motors, uint8_t motor_count)
         currents[i] = (int16_t)out;
     }
 
-    // 打包发送 0x200 帧（4个电机的电流数据）
-    motors[0].can->tx_buff[0] = (currents[0] >> 8) & 0xFF;
-    motors[0].can->tx_buff[1] = (currents[0]) & 0xFF;
-    motors[0].can->tx_buff[2] = (currents[1] >> 8) & 0xFF;
-    motors[0].can->tx_buff[3] = (currents[1]) & 0xFF;
-    motors[0].can->tx_buff[4] = (currents[2] >> 8) & 0xFF;
-    motors[0].can->tx_buff[5] = (currents[2]) & 0xFF;
-    motors[0].can->tx_buff[6] = (currents[3] >> 8) & 0xFF;
-    motors[0].can->tx_buff[7] = (currents[3]) & 0xFF;
+    // 如果有1-4号电机，打包发送 0x200 帧
+    if (motor_count > 0 && motors[0].can != NULL) {
+        motors[0].can->tx_buff[0] = (currents[0] >> 8) & 0xFF;
+        motors[0].can->tx_buff[1] = (currents[0]) & 0xFF;
+        motors[0].can->tx_buff[2] = (currents[1] >> 8) & 0xFF;
+        motors[0].can->tx_buff[3] = (currents[1]) & 0xFF;
+        motors[0].can->tx_buff[4] = (currents[2] >> 8) & 0xFF;
+        motors[0].can->tx_buff[5] = (currents[2]) & 0xFF;
+        motors[0].can->tx_buff[6] = (currents[3] >> 8) & 0xFF;
+        motors[0].can->tx_buff[7] = (currents[3]) & 0xFF;
 
-    CANTransmit(motors[0].can, 2);
+        CANTransmit(motors[0].can, 2);
+    }
+    
+    // 如果有5-8号电机，打包发送 0x1FF 帧
+    if (motor_count > 4 && motors[4].can != NULL) {
+        motors[4].can->tx_buff[0] = (currents[4] >> 8) & 0xFF;
+        motors[4].can->tx_buff[1] = (currents[4]) & 0xFF;
+        motors[4].can->tx_buff[2] = (currents[5] >> 8) & 0xFF;
+        motors[4].can->tx_buff[3] = (currents[5]) & 0xFF;
+        motors[4].can->tx_buff[4] = (currents[6] >> 8) & 0xFF;
+        motors[4].can->tx_buff[5] = (currents[6]) & 0xFF;
+        motors[4].can->tx_buff[6] = (currents[7] >> 8) & 0xFF;
+        motors[4].can->tx_buff[7] = (currents[7]) & 0xFF;
+
+        CANTransmit(motors[4].can, 2);
+    }
 }
 
 /* -------------------- CAN反馈回调 -------------------- */
